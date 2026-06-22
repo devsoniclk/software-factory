@@ -1,0 +1,6 @@
+CREDENTIALS.txt
+*.env
+.env*
+node_modules/
+*.key
+*.pem
