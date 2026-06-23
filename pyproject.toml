@@ -1,0 +1,10 @@
+[project]
+name = "1024-studio"
+version = "0.1.0"
+description = "1024 Studio — AI-native SDLC control plane. Build from the foundation."
+requires-python = ">=3.11"
+license = "Apache-2.0"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["backend/tests"]

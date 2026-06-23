@@ -1,6 +1,36 @@
-CREDENTIALS.txt
-*.env
-.env*
+# Dependencies
 node_modules/
-*.key
-*.pem
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+target/
+
+# Rust
+src-tauri/target/
+
+# Environment & secrets
+.env
+.env.*
+*.env
+CREDENTIALS.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
