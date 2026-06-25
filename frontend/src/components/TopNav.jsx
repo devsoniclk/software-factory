@@ -11,6 +11,7 @@ const tabs = [
   { to: '/audit',        label: 'Audit'        },
   { to: '/graph',        label: 'Graph'        },
   { to: '/models',       label: 'Models'       },
+  { to: '/tokens',       label: 'Tokens'       },
 ];
 
 export default function TopNav({ onSearchOpen, onMenuClick }) {
@@ -28,7 +29,7 @@ export default function TopNav({ onSearchOpen, onMenuClick }) {
       zIndex: 20,
       position: 'relative',
     }}>
-      {/* Hamburger — mobile only */}
+      {/* Hamburger  mobile only */}
       {isMobile && (
         <button
           onClick={onMenuClick}
@@ -75,7 +76,7 @@ export default function TopNav({ onSearchOpen, onMenuClick }) {
         </span>
       </NavLink>
 
-      {/* Tabs — desktop only */}
+      {/* Tabs  desktop only */}
       {!isMobile && (
         <nav style={{
           flex: 1,
@@ -115,7 +116,7 @@ export default function TopNav({ onSearchOpen, onMenuClick }) {
 
       {/* Right side */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', flexShrink: 0 }}>
-        {/* Search — desktop only */}
+        {/* Search  desktop only */}
         {!isMobile && (
           <button
             onClick={onSearchOpen}
@@ -153,7 +154,7 @@ export default function TopNav({ onSearchOpen, onMenuClick }) {
           </button>
         )}
 
-        {/* Search icon — mobile only */}
+        {/* Search icon  mobile only */}
         {isMobile && (
           <button
             onClick={onSearchOpen}

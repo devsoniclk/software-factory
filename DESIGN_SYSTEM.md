@@ -1,6 +1,6 @@
-# 1024 Studio — Design System
+# 1024 Studio: Design System
 
-*"Simplicity is not the absence of clutter; it's the presence of order."* — Jonathan Ive
+*"Simplicity is not the absence of clutter; it's the presence of order."*: Jonathan Ive
 
 ---
 
@@ -16,7 +16,7 @@ Every pixel in 1024 serves a purpose. No decoration for decoration's sake. If re
 **2. Materiality**
 > Materials behave as they are. Glass is glass. Light is light.
 
-The liquid glass surface isn't a visual effect — it's a material. It has depth, translucency, and responds to what's behind it. Light catches its edges. It feels physical.
+The liquid glass surface isn't a visual effect: it's a material. It has depth, translucency, and responds to what's behind it. Light catches its edges. It feels physical.
 
 **3. Restraint**
 > The hardest design decision is what not to add.
@@ -31,7 +31,7 @@ The user should never think about the interface. They should think about their s
 **5. Delight**
 > Small moments of pleasure create emotional connection.
 
-A subtle shimmer when AI generates requirements. A gentle bounce when a task completes. A soft glow when knowledge connects. These aren't features — they're feelings.
+A subtle shimmer when AI generates requirements. A gentle bounce when a task completes. A soft glow when knowledge connects. These aren't features: they're feelings.
 
 ---
 
@@ -124,7 +124,7 @@ FONT STACK
 Primary:    "Inter", -apple-system, BlinkMacSystemFont, sans-serif
 Mono:       "JetBrains Mono", "SF Mono", "Fira Code", monospace
 
-SCALE (1.250 — Major Third)
+SCALE (1.250: Major Third)
 ─────────────────────────────────────────────────
 Display     36px / 40px / 600    Page titles (rare)
 H1          28px / 34px / 600    Section headers
@@ -641,25 +641,25 @@ SPINNER (Button loading)
 
 ### Principles
 
-**1. Purposeful** — Every animation communicates something
+**1. Purposeful**: Every animation communicates something
 - Enter: "Something new appeared"
 - Exit: "Something is gone"
 - State change: "Something updated"
 - Loading: "Something is happening"
 
-**2. Fast** — Never make the user wait for an animation
+**2. Fast**: Never make the user wait for an animation
 - Micro-interactions: 150-200ms
 - Transitions: 200-300ms
 - Page transitions: 300-400ms
 - Nothing over 500ms (except loading indicators)
 
-**3. Natural** — Physics-based easing, not linear
+**3. Natural**: Physics-based easing, not linear
 - Default: `cubic-bezier(0.4, 0, 0.2, 1)` (ease-out)
 - Enter: `cubic-bezier(0, 0, 0.2, 1)` (decelerate)
 - Exit: `cubic-bezier(0.4, 0, 1, 1)` (accelerate)
 - Spring: `spring(1, 80, 10)` (for bouncy interactions)
 
-**4. Subtle** — If you notice the animation, it's too much
+**4. Subtle**: If you notice the animation, it's too much
 - Movement: 4-16px max
 - Scale: 0.96-1.0 max
 - Opacity: 0-1 (never partial for text)
@@ -930,19 +930,19 @@ Arrow keys      Navigate lists, cards, tabs
 
 When a user opens 1024 for the first time:
 
-1. **The app launches** — dark canvas fades in, sidebar slides from left (300ms)
-2. **They see the dashboard** — stats cards cascade in (staggered 50ms)
-3. **They click "AI Generate"** — a modal materializes (scale + fade, 250ms)
-4. **They type a description** — input border glows indigo on focus
-5. **They click Generate** — button shows a subtle pulse, then items appear one by one (cascade, 100ms each)
-6. **Each requirement card** — slides up from below, glass surface catches the light
-7. **They hover a card** — it lifts slightly, shadow deepens, border brightens
-8. **They click to expand** — detail panel slides in from the right (300ms)
-9. **They switch to Knowledge Graph** — page cross-fades (200ms), nodes pop in with spring physics
-10. **They press ⌘K** — command palette materializes centered, fuzzy search responds instantly
+1. **The app launches**: dark canvas fades in, sidebar slides from left (300ms)
+2. **They see the dashboard**: stats cards cascade in (staggered 50ms)
+3. **They click "AI Generate"**: a modal materializes (scale + fade, 250ms)
+4. **They type a description**: input border glows indigo on focus
+5. **They click Generate**: button shows a subtle pulse, then items appear one by one (cascade, 100ms each)
+6. **Each requirement card**: slides up from below, glass surface catches the light
+7. **They hover a card**: it lifts slightly, shadow deepens, border brightens
+8. **They click to expand**: detail panel slides in from the right (300ms)
+9. **They switch to Knowledge Graph**: page cross-fades (200ms), nodes pop in with spring physics
+10. **They press ⌘K**: command palette materializes centered, fuzzy search responds instantly
 
 **Every interaction feels like touching glass.** Smooth, responsive, inevitable. The interface never competes with the work. It recedes. What remains is clarity.
 
 ---
 
-*"True simplicity is derived from so much more than just the absence of clutter and ornamentation. It's about bringing order to complexity."* — Jonathan Ive
+*"True simplicity is derived from so much more than just the absence of clutter and ornamentation. It's about bringing order to complexity."*: Jonathan Ive

@@ -303,6 +303,13 @@ code, pre, .font-mono {
   cursor: not-allowed;
 }
 
+/* ── Utility grids ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
 /* ── Mobile responsive ── */
 @media (max-width: 767px) {
   .page-container {

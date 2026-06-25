@@ -25,12 +25,46 @@ export function useDeleteProject() {
   });
 }
 
+export function useProductOverview(projectId) {
+  return useQuery({
+    queryKey: ['product-overview', projectId],
+    queryFn: () => client.get(`/projects/${projectId}/overview`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useGenerateProductOverview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, interview_answers }) =>
+      client.post(`/projects/${projectId}/overview/generate`, { project_id: projectId, interview_answers }).then((r) => r.data),
+    onSuccess: (_, { projectId }) => qc.invalidateQueries({ queryKey: ['product-overview', projectId] }),
+  });
+}
+
+export function useSaveProductOverview(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => client.put(`/projects/${projectId}/overview`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['product-overview', projectId] }),
+  });
+}
+
 /* ─── Requirements ─── */
 export function useRequirements(projectId) {
   return useQuery({
     queryKey: ['requirements', projectId],
     queryFn: () => client.get(`/projects/${projectId}/requirements`).then((r) => r.data),
     enabled: !!projectId,
+  });
+}
+
+export function useUpdateRequirement(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reqId, ...data }) =>
+      client.put(`/projects/${projectId}/requirements/${reqId}`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['requirements', projectId] }),
   });
 }
 
@@ -67,6 +101,23 @@ export function useCreateBlueprint(projectId) {
     mutationFn: (data) =>
       client.post(`/projects/${projectId}/blueprints`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['blueprints', projectId] }),
+  });
+}
+
+export function useUpdateBlueprint(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bpId, ...data }) =>
+      client.put(`/projects/${projectId}/blueprints/${bpId}`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['blueprints', projectId] }),
+  });
+}
+
+export function useParsedBlueprint(projectId, bpId) {
+  return useQuery({
+    queryKey: ['blueprint-parsed', projectId, bpId],
+    queryFn: () => client.get(`/projects/${projectId}/blueprints/${bpId}/parsed`).then((r) => r.data),
+    enabled: !!projectId && !!bpId,
   });
 }
 
@@ -131,6 +182,23 @@ export function useCreateTestCase(requirementId) {
     mutationFn: (data) =>
       client.post(`/requirements/${requirementId}/tests`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tests', requirementId] }),
+  });
+}
+
+/* ─── Version History ─── */
+export function useVersionHistory(entityType, entityId) {
+  return useQuery({
+    queryKey: ['versions', entityType, entityId],
+    queryFn: () => client.get(`/versions/${entityType}/${entityId}`).then((r) => r.data),
+    enabled: !!entityType && !!entityId,
+  });
+}
+
+export function useVersionContent(entityType, entityId, versionNumber) {
+  return useQuery({
+    queryKey: ['version-content', entityType, entityId, versionNumber],
+    queryFn: () => client.get(`/versions/${entityType}/${entityId}/${versionNumber}`).then((r) => r.data),
+    enabled: !!entityType && !!entityId && versionNumber != null,
   });
 }
 

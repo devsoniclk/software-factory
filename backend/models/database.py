@@ -1,7 +1,7 @@
 """All SQLAlchemy models for 1024 Studio."""
 import enum, uuid, json
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, Integer, Float, Boolean, ForeignKey, Enum as SAEnum
+from sqlalchemy import Column, String, Text, Integer, Float, Boolean, ForeignKey, Enum as SAEnum, Index
 from sqlalchemy.orm import relationship
 from backend.models.engine import Base
 
@@ -39,6 +39,9 @@ class Project(Base):
     description = Column(Text, default="")
     template = Column(String(100), default="")
     settings_json = Column(Text, default="{}")
+    product_overview_json = Column(Text, default="{}")  # business_problem, personas, success_metrics, etc.
+    req_counter = Column(Integer, default=0)             # monotonic counter for REQ IDs
+    bp_counter = Column(Integer, default=0)              # monotonic counter for BLU IDs
     created_at = Column(String, default=now_iso)
     updated_at = Column(String, default=now_iso, onupdate=now_iso)
     requirements = relationship("Requirement", cascade="all,delete-orphan", back_populates="project")
@@ -48,13 +51,21 @@ class Project(Base):
 
 class Requirement(Base):
     __tablename__ = "requirements"
+    __table_args__ = (
+        Index("ix_requirements_project_id", "project_id"),
+        Index("ix_requirements_status", "status"),
+        Index("ix_requirements_created_at", "created_at"),
+        Index("ix_requirements_req_id", "req_id"),
+    )
     id = Column(String, primary_key=True, default=uid)
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    req_id = Column(String(30), default="")   # e.g. REQ-AUTH-001
     title = Column(String(1000), nullable=False)
     description = Column(Text, default="")
     priority = Column(Integer, default=3)
     status = Column(SAEnum(ReqStatus), default=ReqStatus.DRAFT)
     acceptance_criteria_json = Column(Text, default="[]")
+    ears_warnings_json = Column(Text, default="[]")  # list of AC indices failing EARS format
     ai_generated = Column(Boolean, default=False)
     created_by = Column(String(100), default="user")
     created_at = Column(String, default=now_iso)
@@ -64,10 +75,16 @@ class Requirement(Base):
 
 class Blueprint(Base):
     __tablename__ = "blueprints"
+    __table_args__ = (
+        Index("ix_blueprints_project_id", "project_id"),
+    )
     id = Column(String, primary_key=True, default=uid)
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    bp_id = Column(String(30), default="")   # e.g. BLU-AUTH-001
     name = Column(String(500), nullable=False)
     description = Column(Text, default="")
+    dsl_content = Column(Text, default="")   # raw DSL Markdown text
+    parsed_nodes_json = Column(Text, default="[]")  # extracted components/models/ADRs
     decisions_json = Column(Text, default="[]")
     components_json = Column(Text, default="[]")
     constraints_json = Column(Text, default="[]")
@@ -79,6 +96,10 @@ class Blueprint(Base):
 
 class WorkOrder(Base):
     __tablename__ = "work_orders"
+    __table_args__ = (
+        Index("ix_work_orders_blueprint_id", "blueprint_id"),
+        Index("ix_work_orders_status", "status"),
+    )
     id = Column(String, primary_key=True, default=uid)
     blueprint_id = Column(String, ForeignKey("blueprints.id", ondelete="CASCADE"), nullable=False)
     requirement_ids_json = Column(Text, default="[]")
@@ -96,6 +117,10 @@ class WorkOrder(Base):
 
 class TestCase(Base):
     __tablename__ = "test_cases"
+    __table_args__ = (
+        Index("ix_test_cases_requirement_id", "requirement_id"),
+        Index("ix_test_cases_status", "status"),
+    )
     id = Column(String, primary_key=True, default=uid)
     requirement_id = Column(String, ForeignKey("requirements.id", ondelete="CASCADE"), nullable=False)
     work_order_id = Column(String, ForeignKey("work_orders.id"), nullable=True)
@@ -112,6 +137,10 @@ class TestCase(Base):
 
 class Feedback(Base):
     __tablename__ = "feedbacks"
+    __table_args__ = (
+        Index("ix_feedbacks_project_id", "project_id"),
+        Index("ix_feedbacks_created_at", "created_at"),
+    )
     id = Column(String, primary_key=True, default=uid)
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     source = Column(String(100), default="manual")
@@ -125,6 +154,10 @@ class Feedback(Base):
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_entity_type_id", "entity_type", "entity_id"),
+        Index("ix_audit_logs_timestamp", "timestamp"),
+    )
     id = Column(String, primary_key=True, default=uid)
     entity_type = Column(String(50), nullable=False)
     entity_id = Column(String, nullable=False)
@@ -202,3 +235,41 @@ class CreditTransaction(Base):
     reason = Column(String(200), nullable=False)
     reference_id = Column(String, default="")
     created_at = Column(String, default=now_iso)
+
+
+class DocumentVersion(Base):
+    """Immutable content snapshot for requirements and blueprints."""
+    __tablename__ = "document_versions"
+    __table_args__ = (
+        Index("ix_doc_versions_entity", "entity_type", "entity_id"),
+        Index("ix_doc_versions_created_at", "created_at"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    entity_type = Column(String(50), nullable=False)   # "requirement" | "blueprint"
+    entity_id = Column(String, nullable=False)
+    version_number = Column(Integer, nullable=False)
+    content_json = Column(Text, nullable=False, default="{}")
+    summary = Column(String(500), default="")           # short change description
+    created_by = Column(String(100), default="user")
+    created_at = Column(String, default=now_iso)
+
+
+class TokenUsageLog(Base):
+    """One row per LLM API call (or cache hit)."""
+    __tablename__ = "token_usage_logs"
+    __table_args__ = (
+        Index("ix_token_usage_timestamp", "timestamp"),
+        Index("ix_token_usage_session", "session_id"),
+        Index("ix_token_usage_agent", "agent_type"),
+    )
+    id              = Column(String, primary_key=True, default=uid)
+    session_id      = Column(String(100), nullable=False, default="global")
+    provider        = Column(String(50), nullable=False, default="")
+    model           = Column(String(100), nullable=False, default="")
+    agent_type      = Column(String(50), nullable=False, default="default")
+    prompt_tokens   = Column(Integer, nullable=False, default=0)
+    completion_tokens = Column(Integer, nullable=False, default=0)
+    total_tokens    = Column(Integer, nullable=False, default=0)
+    tokens_saved    = Column(Integer, nullable=False, default=0)   # saved by compression
+    cache_hit       = Column(Boolean, nullable=False, default=False)
+    timestamp       = Column(String, nullable=False, default=now_iso)

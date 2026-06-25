@@ -1,4 +1,4 @@
-"""Export router — markdown and PDF export."""
+"""Export router : markdown and PDF export."""
 import json
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
@@ -118,7 +118,7 @@ async def export_markdown(project_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/project/{project_id}/pdf")
 async def export_pdf(project_id: str, db: AsyncSession = Depends(get_db)):
-    """PDF export — returns markdown for now (PDF generation requires additional deps)."""
+    """PDF export : returns markdown for now (PDF generation requires additional deps)."""
     # Reuse markdown export logic
     project = await db.get(Project, project_id)
     if not project:

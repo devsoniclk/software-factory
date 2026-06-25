@@ -1,8 +1,8 @@
-# Software Factory — Desktop App (Better Than 8090.ai)
+# Software Factory: Desktop App (Better Than 8090.ai)
 
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
-**Goal:** Build a downloadable desktop application that gives every developer their own AI-native SDLC control plane — no cloud, no subscriptions, no API keys. One install, works offline.
+**Goal:** Build a downloadable desktop application that gives every developer their own AI-native SDLC control plane: no cloud, no subscriptions, no API keys. One install, works offline.
 
 **Architecture:** Tauri 2.0 (Rust shell) + bundled Ollama sidecar (auto-managed) + Python FastAPI backend + React frontend. Single binary per platform (~30MB), auto-downloads a default model on first launch.
 
@@ -65,23 +65,23 @@ Data: ~/SoftwareFactory/ (projects DB, models, exports)
 - macOS: Drag to Applications, double-click
 - Windows: Installer exe, double-click
 - Linux: AppImage, double-click
-- First launch: auto-downloads ~4GB default model (qwen2.5:7b) OR activates free MiMo API — user's choice
+- First launch: auto-downloads ~4GB default model (qwen2.5:7b) OR activates free MiMo API: user's choice
 
 ### 2. 🧠 Built-In Model Manager
 - Browse and download any Ollama model from the UI
 - Switch models per-task (fast model for drafting, big model for architecture)
 - See VRAM usage, speed benchmarks
-- Supports: Llama 3, Qwen, DeepSeek, Mistral, Phi, Gemma — anything Ollama runs
+- Supports: Llama 3, Qwen, DeepSeek, Mistral, Phi, Gemma: anything Ollama runs
 - "Bring your own API key" mode for OpenAI/Anthropic/DeepSeek if user wants cloud
-- **Xiaomi MiMo API** — Free cloud models (mimo-v2.5-pro) with no API key cost. Get key at https://platform.xiaomimimo.com
-- **Multi-provider switcher** — Ollama (local) → MiMo (free cloud) → OpenAI/Anthropic (paid cloud). One click to switch.
+- **Xiaomi MiMo API**: Free cloud models (mimo-v2.5-pro) with no API key cost. Get key at https://platform.xiaomimimo.com
+- **Multi-provider switcher**: Ollama (local) → MiMo (free cloud) → OpenAI/Anthropic (paid cloud). One click to switch.
 
 ### 3. 🔒 Local-First Data
 - SQLite database at `~/SoftwareFactory/data.db`
 - Knowledge graph stored in same DB (graph table pattern)
 - All files, exports, and artifacts on user's disk
 - **Zero telemetry** (no phone-home, ever)
-- **Optional** Git sync — export project to Git repo for team sharing
+- **Optional** Git sync: export project to Git repo for team sharing
 
 ### 4. 📦 Offline-First
 - Works completely offline after model download
@@ -476,7 +476,7 @@ weasyprint==62.3
 
 **config/settings.py:**
 ```python
-"""Configuration — auto-detects Ollama, sets data paths."""
+"""Configuration: auto-detects Ollama, sets data paths."""
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from pathlib import Path
@@ -519,7 +519,7 @@ AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_co
 Base = declarative_base()
 
 async def init_db():
-    from backend.models.database import *  # noqa — ensure all models imported
+    from backend.models.database import *  # noqa: ensure all models imported
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -530,7 +530,7 @@ async def get_db():
 
 **api/app.py:**
 ```python
-"""Main FastAPI app — runs as subprocess inside Tauri."""
+"""Main FastAPI app: runs as subprocess inside Tauri."""
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -755,7 +755,7 @@ git add -A && git commit -m "feat: Audit service"
 **File:** `backend/services/llm_client.py`
 
 ```python
-"""LLM client — auto-detects Ollama, supports streaming + JSON mode."""
+"""LLM client: auto-detects Ollama, supports streaming + JSON mode."""
 from openai import AsyncOpenAI
 from backend.config.settings import settings
 import json, httpx
@@ -771,7 +771,7 @@ class LLMClient:
             **File:** `backend/services/llm_client.py`
 
             ```python
-            """Multi-provider LLM client — Ollama (local), MiMo (free), OpenAI/Anthropic (paid)."""
+            """Multi-provider LLM client: Ollama (local), MiMo (free), OpenAI/Anthropic (paid)."""
             from openai import AsyncOpenAI
             from backend.config.settings import settings
             import json, httpx, os
@@ -793,7 +793,7 @@ class LLMClient:
                     "requires_key": True,
                     "offline": False,
                     "models": [
-                        {"name": "mimo-v2.5-pro", "desc": "Flagship — reasoning + tool calling", "tags": ["coding","reasoning","best"]},
+                        {"name": "mimo-v2.5-pro", "desc": "Flagship: reasoning + tool calling", "tags": ["coding","reasoning","best"]},
                         {"name": "mimo-v2.5", "desc": "Multimodal (text/image/audio/video)", "tags": ["multimodal"]},
                         {"name": "mimo-v2-pro", "desc": "Older pro model", "tags": ["general"]},
                     ],
@@ -925,17 +925,17 @@ git add -A && git commit -m "feat: LLM client with Ollama auto-detect"
 Each router follows the same pattern. Here's the combined structure:
 
 **Files:**
-- `backend/api/projects.py` — POST/GET/DELETE projects
-- `backend/api/requirements.py` — CRUD + status transitions + AI generate
-- `backend/api/blueprints.py` — CRUD + versioning + AI generate
-- `backend/api/work_orders.py` — CRUD + status + AI generate
-- `backend/api/feedback.py` — CRUD + AI parse
-- `backend/api/tests_api.py` — CRUD + AI generate
-- `backend/api/audit.py` — GET audit logs with filters
-- `backend/api/knowledge_graph.py` — Graph queries + visualization data
-- `backend/api/ai_endpoints.py` — All AI agent endpoints
-- `backend/api/ollama_manager.py` — Model list/download/switch
-- `backend/api/export.py` — PDF/Markdown export
+- `backend/api/projects.py`: POST/GET/DELETE projects
+- `backend/api/requirements.py`: CRUD + status transitions + AI generate
+- `backend/api/blueprints.py`: CRUD + versioning + AI generate
+- `backend/api/work_orders.py`: CRUD + status + AI generate
+- `backend/api/feedback.py`: CRUD + AI parse
+- `backend/api/tests_api.py`: CRUD + AI generate
+- `backend/api/audit.py`: GET audit logs with filters
+- `backend/api/knowledge_graph.py`: Graph queries + visualization data
+- `backend/api/ai_endpoints.py`: All AI agent endpoints
+- `backend/api/ollama_manager.py`: Model list/download/switch
+- `backend/api/export.py`: PDF/Markdown export
 
 **Register all in app.py:**
 ```python
@@ -960,7 +960,7 @@ app.include_router(export.router, prefix="/api/export", tags=["export"])
 
 ### Task 11: 5 AI Agents
 
-**Objective:** All AI agents — requirements, blueprints, work orders, tests, feedback.
+**Objective:** All AI agents: requirements, blueprints, work orders, tests, feedback.
 
 **Files:**
 - `backend/agents/requirements_agent.py`
@@ -969,18 +969,18 @@ app.include_router(export.router, prefix="/api/export", tags=["export"])
 - `backend/agents/test_agent.py`
 - `backend/agents/feedback_agent.py`
 
-**(Same agent logic as the plan above — each wraps `llm.chat_json()` with a system prompt)**
+**(Same agent logic as the plan above: each wraps `llm.chat_json()` with a system prompt)**
 
 ---
 
 ### Task 12: Knowledge Graph Service (SQLite-based)
 
-**Objective:** Graph layer using SQLite recursive CTEs — no external graph DB dependency.
+**Objective:** Graph layer using SQLite recursive CTEs: no external graph DB dependency.
 
 **File:** `backend/services/knowledge_graph.py`
 
 ```python
-"""Knowledge graph using SQLite — recursive CTEs for traversals."""
+"""Knowledge graph using SQLite: recursive CTEs for traversals."""
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from backend.models.database import KGNode, KGEdge
@@ -1066,7 +1066,7 @@ git add -A && git commit -m "feat: SQLite-based knowledge graph service"
 **File:** `backend/api/ollama_manager.py`
 
 ```python
-"""Ollama model management — list, pull, switch, benchmark."""
+"""Ollama model management: list, pull, switch, benchmark."""
 from fastapi import APIRouter
 from pydantic import BaseModel
 import httpx
@@ -1207,7 +1207,7 @@ async def export_markdown(pid: str, db: AsyncSession = Depends(get_db)):
     for bp in bps:
         wos = (await db.execute(select(WorkOrder).where(WorkOrder.blueprint_id == bp.id))).scalars().all()
         if wos:
-            md += f"## Work Orders — {bp.name}\n\n"
+            md += f"## Work Orders: {bp.name}\n\n"
             for wo in wos:
                 md += f"### {wo.title} [{wo.status.value}]\n\n{wo.description}\n\n"
 
@@ -1248,7 +1248,7 @@ git add -A && git commit -m "feat: Markdown and PDF export"
 
 ```bash
 cd ~/Projects/software-factory/frontend
-# Already created in Task 1 — configure Tailwind
+# Already created in Task 1: configure Tailwind
 ```
 
 **vite.config.ts:**
@@ -1362,7 +1362,7 @@ Each page has:
 
 ### Task 23: Model Manager Page
 
-**Objective:** Browse, download, switch, and benchmark AI models — the killer feature over 8090.
+**Objective:** Browse, download, switch, and benchmark AI models: the killer feature over 8090.
 
 ```tsx
 // Features:
@@ -1415,12 +1415,12 @@ Each page has:
 **Objective:** Pre-built templates for common project types.
 
 **Templates:**
-1. **Web Application** — React/Next.js stack requirements + architecture
-2. **REST API** — FastAPI/Express requirements + architecture
-3. **Mobile App** — React Native / Flutter requirements
-4. **Data Pipeline** — ETL/Airflow requirements
-5. **CLI Tool** — Command-line application requirements
-6. **Microservices** — Distributed system architecture
+1. **Web Application**: React/Next.js stack requirements + architecture
+2. **REST API**: FastAPI/Express requirements + architecture
+3. **Mobile App**: React Native / Flutter requirements
+4. **Data Pipeline**: ETL/Airflow requirements
+5. **CLI Tool**: Command-line application requirements
+6. **Microservices**: Distributed system architecture
 
 **File:** `backend/seeds/templates.py`
 

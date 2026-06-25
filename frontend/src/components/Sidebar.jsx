@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu } from 'lucide-react';
+import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu, Zap } from 'lucide-react';
 import { useProjects } from '../api/hooks';
 import { useState, useEffect, useRef } from 'react';
 import { useMobile } from '../hooks/useMobile';
@@ -19,6 +19,7 @@ const sectionTabs = [
   { to: '/audit',        icon: Shield,        label: 'Audit'        },
   { to: '/graph',        icon: Network,       label: 'Graph'        },
   { to: '/models',       icon: Cpu,           label: 'Models'       },
+  { to: '/tokens',       icon: Zap,           label: 'Tokens'       },
 ];
 
 function NavItem({ to, icon: Icon, label, end }) {
@@ -195,7 +196,7 @@ export default function Sidebar({ isOpen, onClose }) {
           </AnimatePresence>
         </div>
 
-        {/* Section tabs — mobile only */}
+        {/* Section tabs  mobile only */}
         {isMobile && (
           <div style={{ padding: '8px 8px 0', borderBottom: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 10px 4px' }}>Sections</div>

@@ -1,4 +1,4 @@
-# Pre-Build Checklist — What's Left to Plan
+# Pre-Build Checklist: What's Left to Plan
 
 ## ✅ Already Planned
 
@@ -10,7 +10,7 @@
 
 ---
 
-## 🔴 BLOCKING — Must Plan Before Building
+## 🔴 BLOCKING: Must Plan Before Building
 
 These decisions directly affect code architecture. Can't change them later without major refactoring.
 
@@ -25,7 +25,7 @@ These decisions directly affect code architecture. Can't change them later witho
 | **AGPL** | ✅ (must open source) | ✅ | ✅ | MongoDB, Grafana |
 | **Dual License** | Tiered | Tiered | ✅ | Qt, MySQL |
 
-**Recommendation:** **Apache 2.0** for the core, **proprietary** for Team/Enterprise features. This is the Postman/Redis model — open core, paid add-ons.
+**Recommendation:** **Apache 2.0** for the core, **proprietary** for Team/Enterprise features. This is the Postman/Redis model: open core, paid add-ons.
 
 **Decision needed:** Open core vs fully open vs BSL?
 
@@ -80,12 +80,12 @@ These decisions directly affect code architecture. Can't change them later witho
 | **Typography** | Font family, sizes, weights, line heights |
 | **Spacing scale** | 4px base grid (4, 8, 12, 16, 24, 32, 48, 64) |
 | **Component library** | Buttons, inputs, modals, cards, tables, badges, tooltips |
-| **Icon system** | Lucide icons (already chosen) — which subset? |
+| **Icon system** | Lucide icons (already chosen): which subset? |
 | **Layout patterns** | Sidebar + main, split pane, modal vs slide-over |
 | **Empty states** | What each page shows when empty |
 | **Loading states** | Skeletons, spinners, progress bars |
 | **Error states** | What happens when LLM fails, Ollama crashes |
-| **Animations** | Framer Motion — enter/exit, page transitions, micro-interactions |
+| **Animations** | Framer Motion: enter/exit, page transitions, micro-interactions |
 
 **Recommendation:** Use **shadcn/ui** component library (built on Radix + Tailwind). Copy components into project, customize. Saves 2-3 weeks of UI work.
 
@@ -112,7 +112,7 @@ These decisions directly affect code architecture. Can't change them later witho
 
 ---
 
-## 🟡 IMPORTANT — Plan During Build
+## 🟡 IMPORTANT: Plan During Build
 
 These can be designed as we build, but should have a rough direction.
 
@@ -173,7 +173,7 @@ These can be designed as we build, but should have a rough direction.
 
 ---
 
-## 🟢 NICE-TO-HAVE — Plan Later
+## 🟢 NICE-TO-HAVE: Plan Later
 
 ### 14. Mobile Companion (Future)
 - Read-only viewer for requirements/blueprints on mobile
@@ -199,7 +199,7 @@ These can be designed as we build, but should have a rough direction.
 
 ---
 
-## DECISION MATRIX — What to Decide NOW
+## DECISION MATRIX: What to Decide NOW
 
 | # | Decision | Options | Recommendation | Impact |
 |---|----------|---------|----------------|--------|
@@ -219,7 +219,7 @@ These can be designed as we build, but should have a rough direction.
 1. **You decide:** License, payment processor, telemetry policy (3 decisions)
 2. **I design:** UX/UI design system with shadcn/ui (I can build this)
 3. **I plan:** CI/CD pipeline, testing strategy, error handling (I can plan these)
-4. **Then we BUILD** — Phase 1 starts immediately after decisions
+4. **Then we BUILD**: Phase 1 starts immediately after decisions
 
 **Total remaining planning: ~2-3 hours for items 6-13, then we're ready.**
 

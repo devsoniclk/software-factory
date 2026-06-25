@@ -1,4 +1,4 @@
-"""Project templates — pre-built requirements + blueprints for quick starts."""
+"""Project templates : pre-built requirements + blueprints for quick starts."""
 import json
 TEMPLATES = [
     {

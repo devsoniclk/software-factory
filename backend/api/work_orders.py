@@ -1,6 +1,6 @@
 """Work Orders CRUD router with status and output updates."""
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.models.engine import get_db
@@ -39,9 +39,18 @@ async def create_work_order(blueprint_id: str, body: WorkOrderCreate, db: AsyncS
 
 
 @router.get("", response_model=list[WorkOrderResponse])
-async def list_work_orders(blueprint_id: str, db: AsyncSession = Depends(get_db)):
+async def list_work_orders(
+    blueprint_id: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(
-        select(WorkOrder).where(WorkOrder.blueprint_id == blueprint_id).order_by(WorkOrder.created_at.desc())
+        select(WorkOrder)
+        .where(WorkOrder.blueprint_id == blueprint_id)
+        .order_by(WorkOrder.created_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
     return result.scalars().all()
 

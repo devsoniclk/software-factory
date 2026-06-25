@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, ArrowUpRight, CheckCircle2, GitBranch, Clock } from 'lucide-react';
+import { Plus, ArrowUpRight, CheckCircle2, GitBranch, Sparkles } from 'lucide-react';
 import Modal from '../components/Modal';
-import { useProjects, useCreateProject, useRequirements, useBlueprints, useWorkOrders, useTestCases, useFeedback } from '../api/hooks';
+import ProductInterviewModal from '../components/ProductInterviewModal';
+import { useProjects, useCreateProject, useRequirements, useBlueprints, useWorkOrders, useFeedback } from '../api/hooks';
 
 const stagger = (i) => ({ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.22, delay: i * 0.05, ease: [0.4, 0, 0.2, 1] } });
 
@@ -54,6 +55,7 @@ function StatCard({ label, value, sub, to, delay }) {
 
 export default function Dashboard() {
   const [createOpen, setCreateOpen] = useState(false);
+  const [interviewProjectId, setInterviewProjectId] = useState(null);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
 
@@ -82,7 +84,13 @@ export default function Dashboard() {
   const handleCreate = () => {
     if (!name.trim()) return;
     createProject.mutate({ name, description: desc }, {
-      onSuccess: () => { setCreateOpen(false); setName(''); setDesc(''); }
+      onSuccess: (created) => {
+        setCreateOpen(false);
+        setName('');
+        setDesc('');
+        // Launch product interview for the new project
+        setInterviewProjectId(created.id);
+      },
     });
   };
 
@@ -145,6 +153,12 @@ export default function Dashboard() {
                       {new Date(p.created_at).toLocaleDateString()}
                     </span>
                   )}
+                  <button
+                    onClick={(e) => { e.preventDefault(); setInterviewProjectId(p.id || p.project_id); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: 11, fontWeight: 500, color: 'var(--accent)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    <Sparkles size={10} strokeWidth={1.5} /> Overview
+                  </button>
                   <StatusPill status="active" />
                   <ArrowUpRight size={13} strokeWidth={1.5} style={{ color: 'var(--text-tertiary)' }} />
                 </div>
@@ -201,6 +215,12 @@ export default function Dashboard() {
           </button>
         </motion.div>
       )}
+
+      <ProductInterviewModal
+        projectId={interviewProjectId}
+        isOpen={!!interviewProjectId}
+        onClose={() => setInterviewProjectId(null)}
+      />
 
       <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New Project">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

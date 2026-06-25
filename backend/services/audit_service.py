@@ -1,4 +1,4 @@
-"""Audit service — logs every state change to AuditLog table."""
+"""Audit service : logs every state change to AuditLog table."""
 import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.database import AuditLog

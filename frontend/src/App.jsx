@@ -11,6 +11,7 @@ import KnowledgeGraphPage from './pages/KnowledgeGraphPage';
 import AuditPage from './pages/AuditPage';
 import ModelManagerPage from './pages/ModelManagerPage';
 import SettingsPage from './pages/SettingsPage';
+import TokenUsagePage from './pages/TokenUsagePage';
 import { useTheme } from './hooks/useTheme';
 
 const queryClient = new QueryClient({
@@ -35,6 +36,7 @@ function AppRoutes() {
           <Route path="/audit" element={<AuditPage />} />
           <Route path="/models" element={<ModelManagerPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/tokens" element={<TokenUsagePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

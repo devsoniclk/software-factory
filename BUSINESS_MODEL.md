@@ -1,4 +1,4 @@
-# Software Factory — Business Model & Revenue Projections
+# Software Factory: Business Model & Revenue Projections
 
 ## Executive Summary
 
@@ -16,23 +16,23 @@ Software Factory is an open-source, local-first AI-native SDLC desktop app. The 
 │                    REVENUE STREAMS                            │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  1. TEAM SYNC (Primary Revenue — 60% of total)       │   │
+│  │  1. TEAM SYNC (Primary Revenue: 60% of total)       │   │
 │  │     $12/user/month · Real-time collab · Cloud backup  │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  2. ENTERPRISE (High-Value — 20% of total)            │   │
+│  │  2. ENTERPRISE (High-Value: 20% of total)            │   │
 │  │     $49/user/month · SSO · Audit · Compliance · SLA   │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  3. MARKETPLACE (Scalable — 10% of total)             │   │
+│  │  3. MARKETPLACE (Scalable: 10% of total)             │   │
 │  │     30% commission · Templates · Plugins · Agents      │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  4. MODEL CREDITS (Growing — 5% of total)             │   │
+│  │  4. MODEL CREDITS (Growing: 5% of total)             │   │
 │  │     Pre-paid GPU credits · Premium model access        │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  5. SUPPORT & TRAINING (Stable — 5% of total)         │   │
+│  │  5. SUPPORT & TRAINING (Stable: 5% of total)         │   │
 │  │     Priority support · Certification · Workshops       │   │
 │  └──────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────┘
@@ -43,7 +43,7 @@ Software Factory is an open-source, local-first AI-native SDLC desktop app. The 
 ## TIER BREAKDOWN
 
 ### 🆓 FREE TIER (Growth Engine)
-**Price: $0 — forever, no credit card**
+**Price: $0: forever, no credit card**
 
 What's included:
 - Full desktop app (download and run)
@@ -93,7 +93,7 @@ Everything in Pro, plus:
 
 **Target:** Teams of 3-50 developers
 **Conversion rate from Free:** 2-4%
-**This is the main revenue driver** — team seats compound
+**This is the main revenue driver**: team seats compound
 
 ---
 
@@ -190,10 +190,10 @@ For users who want premium models without running local GPU:
 |--------|-------------|------|---------|--------|
 | Pro | 2,000 | $12/mo | $24,000 | $288,000 |
 | Team | 400 (50 orgs × 8 seats) | $29/mo | $92,800 | $1,113,600 |
-| Enterprise | 0 | — | $0 | $0 |
-| Marketplace | — | — | $3,000 | $36,000 |
-| Model Credits | — | — | $2,000 | $24,000 |
-| Support | — | — | $1,000 | $12,000 |
+| Enterprise | 0 |: | $0 | $0 |
+| Marketplace |: |: | $3,000 | $36,000 |
+| Model Credits |: |: | $2,000 | $24,000 |
+| Support |: |: | $1,000 | $12,000 |
 | **TOTAL Y1** | | | **$122,800/mo** | **$1,473,600** |
 
 ### Year 2 (Growth Phase)
@@ -203,9 +203,9 @@ For users who want premium models without running local GPU:
 | Pro | 10,000 | $12/mo | $120,000 | $1,440,000 |
 | Team | 2,800 (200 orgs × 14 seats) | $29/mo | $683,200 | $8,198,400 |
 | Enterprise | 500 (5 orgs × 100 seats) | $49/mo | $24,500 | $294,000 |
-| Marketplace | — | — | $25,000 | $300,000 |
-| Model Credits | — | — | $15,000 | $180,000 |
-| Support | — | — | $10,000 | $120,000 |
+| Marketplace |: |: | $25,000 | $300,000 |
+| Model Credits |: |: | $15,000 | $180,000 |
+| Support |: |: | $10,000 | $120,000 |
 | **TOTAL Y2** | | | **$877,700/mo** | **$10,532,400** |
 
 ### Year 3 (Enterprise Scale)
@@ -215,9 +215,9 @@ For users who want premium models without running local GPU:
 | Pro | 20,000 | $12/mo | $240,000 | $2,880,000 |
 | Team | 6,000 (500 orgs × 12 seats) | $29/mo | $1,468,800 | $17,625,600 |
 | Enterprise | 3,000 (20 orgs × 150 seats) | $49/mo | $147,000 | $1,764,000 |
-| Marketplace | — | — | $80,000 | $960,000 |
-| Model Credits | — | — | $50,000 | $600,000 |
-| Support | — | — | $30,000 | $360,000 |
+| Marketplace |: |: | $80,000 | $960,000 |
+| Model Credits |: |: | $50,000 | $600,000 |
+| Support |: |: | $30,000 | $360,000 |
 | **TOTAL Y3** | | | **$2,015,800/mo** | **$24,189,600** |
 
 ### Summary Table
@@ -251,26 +251,26 @@ For users who want premium models without running local GPU:
 ## GO-TO-MARKET STRATEGY
 
 ### Phase 1: Launch (Months 1-3)
-1. **Product Hunt** — Target #1 Product of the Day
-2. **Hacker News** — "Show HN: Open-source alternative to $200/mo AI SDLC tools"
-3. **Reddit** — r/programming, r/softwarearchitecture, r/devtools
-4. **Twitter/X** — Build in public, demo videos
-5. **Dev.to / Medium** — "How I built an 8090.ai clone that runs locally"
-6. **GitHub** — Open source, star growth → social proof
+1. **Product Hunt**: Target #1 Product of the Day
+2. **Hacker News**: "Show HN: Open-source alternative to $200/mo AI SDLC tools"
+3. **Reddit**: r/programming, r/softwarearchitecture, r/devtools
+4. **Twitter/X**: Build in public, demo videos
+5. **Dev.to / Medium**: "How I built an 8090.ai clone that runs locally"
+6. **GitHub**: Open source, star growth → social proof
 
 ### Phase 2: Community (Months 3-12)
-1. **Template marketplace** — Seed with 20 high-quality templates
-2. **Plugin ecosystem** — Make it easy to build and sell plugins
-3. **Discord community** — Support, feature requests, showcases
-4. **YouTube** — Tutorial series "AI-Powered Software Development"
-5. **Conference talks** — DevConf, QCon, StrangeLoop
+1. **Template marketplace**: Seed with 20 high-quality templates
+2. **Plugin ecosystem**: Make it easy to build and sell plugins
+3. **Discord community**: Support, feature requests, showcases
+4. **YouTube**: Tutorial series "AI-Powered Software Development"
+5. **Conference talks**: DevConf, QCon, StrangeLoop
 
 ### Phase 3: Enterprise (Months 6-24)
-1. **Enterprise landing page** — SOC 2, SSO, compliance messaging
-2. **Case studies** — Document early adopter success stories
-3. **Partner channel** — Integrate with Jira, Azure DevOps, ServiceNow
-4. **Sales team** — Hire 2-3 enterprise AEs
-5. **Compliance certifications** — SOC 2 Type II, ISO 27001
+1. **Enterprise landing page**: SOC 2, SSO, compliance messaging
+2. **Case studies**: Document early adopter success stories
+3. **Partner channel**: Integrate with Jira, Azure DevOps, ServiceNow
+4. **Sales team**: Hire 2-3 enterprise AEs
+5. **Compliance certifications**: SOC 2 Type II, ISO 27001
 
 ---
 
@@ -325,7 +325,7 @@ For users who want premium models without running local GPU:
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|------------|
 | **Ollama improves and bundles similar UI** | Medium | High | Build network effects (templates, plugins, team features) |
-| **8090.ai goes freemium** | Low | Medium | We're open source — they can't compete on trust |
+| **8090.ai goes freemium** | Low | Medium | We're open source: they can't compete on trust |
 | **Big tech (GitHub, Atlassian) ships similar** | Medium | High | Move fast, build community, stay local-first |
 | **AI models get too expensive** | Low | Medium | Always have local (Ollama) fallback |
 | **Slow enterprise adoption** | Medium | Medium | Focus on team tier first, enterprise later |
@@ -350,7 +350,7 @@ For users who want premium models without running local GPU:
 
 ## THE PITCH (30 seconds)
 
-> "Software Factory is the open-source, local-first alternative to $200/month AI development platforms. Download it free, run it on your machine, keep your data private. Teams upgrade for real-time collaboration at $29/user/month — 85% cheaper than 8090.ai with zero lock-in. We're targeting the $18B SDLC tools market with a developer-first approach that's already attracted [X] GitHub stars and [Y] active users."
+> "Software Factory is the open-source, local-first alternative to $200/month AI development platforms. Download it free, run it on your machine, keep your data private. Teams upgrade for real-time collaboration at $29/user/month: 85% cheaper than 8090.ai with zero lock-in. We're targeting the $18B SDLC tools market with a developer-first approach that's already attracted [X] GitHub stars and [Y] active users."
 
 ---
 
