@@ -4,10 +4,12 @@ import { Plus, Sparkles, Layers, Box, ShieldAlert, ChevronDown, Code2, Eye, Hist
 import GlassCard from '../components/GlassCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
+import MarkdownEditor from '../components/MarkdownEditor';
+import DiffViewer from '../components/DiffViewer';
 import { StatusBadge, AIBadge } from '../components/Badge';
 import {
   useProjects, useBlueprints, useCreateBlueprint, useUpdateBlueprint,
-  useGenerateBlueprint, useParsedBlueprint, useVersionHistory,
+  useGenerateBlueprint, useParsedBlueprint, useVersionHistory, useVersionContent,
 } from '../api/hooks';
 
 const stagger = (i) => ({
@@ -122,21 +124,63 @@ function ParsedView({ projectId, bpId }) {
 
 function VersionHistoryPanel({ bpId }) {
   const { data: versions, isLoading } = useVersionHistory('blueprint', bpId);
+  const [selectedVer, setSelectedVer] = useState(null);
+  const [showDiff, setShowDiff] = useState(false);
+  const { data: vContent } = useVersionContent('blueprint', bpId, selectedVer);
+  const { data: prevVContent } = useVersionContent('blueprint', bpId, selectedVer > 1 ? selectedVer - 1 : null);
+
   if (isLoading) return <div className="skeleton" style={{ height: 80 }} />;
   if (!versions?.length) return <p style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>No versions yet.</p>;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {versions.map((v) => (
-        <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--color-bg-secondary)', border: '1px solid var(--border)' }}>
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--color-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+        <button
+          key={v.id}
+          onClick={() => { setSelectedVer(selectedVer === v.version_number ? null : v.version_number); setShowDiff(false); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, textAlign: 'left', width: '100%',
+            background: selectedVer === v.version_number ? 'var(--accent-bg)' : 'var(--color-bg-secondary)',
+            border: `1px solid ${selectedVer === v.version_number ? 'var(--accent-border)' : 'var(--border)'}`,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: selectedVer === v.version_number ? 'var(--accent)' : 'var(--color-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: selectedVer === v.version_number ? '#fff' : 'var(--text-tertiary)', flexShrink: 0 }}>
             v{v.version_number}
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{v.summary}</div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{new Date(v.created_at).toLocaleString()}</div>
           </div>
-        </div>
+        </button>
       ))}
+      {selectedVer && vContent && (
+        <div style={{ padding: 12, background: 'var(--color-bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Version {selectedVer}</span>
+            {selectedVer > 1 && (
+              <button onClick={() => setShowDiff((d) => !d)} style={{ fontSize: 11, color: showDiff ? 'var(--accent)' : 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+                {showDiff ? 'Show content' : `Diff vs v${selectedVer - 1}`}
+              </button>
+            )}
+          </div>
+          {showDiff && prevVContent ? (
+            <DiffViewer
+              oldContent={(prevVContent.content?.description || '') + '\n\n' + (prevVContent.content?.dsl_content || '')}
+              newContent={(vContent.content?.description || '') + '\n\n' + (vContent.content?.dsl_content || '')}
+              oldLabel={`v${selectedVer - 1}`}
+              newLabel={`v${selectedVer}`}
+            />
+          ) : (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>{vContent.content?.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{vContent.content?.description}</div>
+              {vContent.content?.dsl_content && (
+                <pre style={{ fontSize: 11, background: 'var(--color-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: 10, overflow: 'auto', maxHeight: 200 }}>{vContent.content.dsl_content}</pre>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -382,21 +426,14 @@ export default function BlueprintsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Description</label>
-              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-base" style={{ resize: 'none' }} />
+              <MarkdownEditor value={form.description || ''} onChange={(v) => setForm({ ...form, description: v })} rows={3} placeholder="Architectural overview (markdown supported)" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>DSL Content</label>
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Use ## Component:, ## Model:, ## ADR: sections</span>
               </div>
-              <textarea
-                value={form.dsl_content}
-                onChange={(e) => setForm({ ...form, dsl_content: e.target.value })}
-                rows={14}
-                placeholder={DSL_PLACEHOLDER}
-                className="input-base font-mono"
-                style={{ resize: 'vertical', fontSize: 12, lineHeight: 1.7 }}
-              />
+              <MarkdownEditor value={form.dsl_content || ''} onChange={(v) => setForm({ ...form, dsl_content: v })} rows={14} placeholder={DSL_PLACEHOLDER} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
               <button onClick={() => setEditMode(false)} className="btn-ghost">Cancel</button>
@@ -417,21 +454,14 @@ export default function BlueprintsPage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Description</label>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Brief architectural overview" className="input-base" style={{ resize: 'none' }} />
+            <MarkdownEditor value={form.description || ''} onChange={(v) => setForm({ ...form, description: v })} rows={3} placeholder="Brief architectural overview (markdown supported)" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>DSL Content</label>
               <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Optional, can add later</span>
             </div>
-            <textarea
-              value={form.dsl_content}
-              onChange={(e) => setForm({ ...form, dsl_content: e.target.value })}
-              rows={8}
-              placeholder={DSL_PLACEHOLDER}
-              className="input-base font-mono"
-              style={{ resize: 'none', fontSize: 12, lineHeight: 1.6 }}
-            />
+            <MarkdownEditor value={form.dsl_content || ''} onChange={(v) => setForm({ ...form, dsl_content: v })} rows={8} placeholder={DSL_PLACEHOLDER} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
             <button onClick={() => setCreateOpen(false)} className="btn-ghost">Cancel</button>

@@ -318,6 +318,23 @@ export function useExportMarkdown(projectId) {
   });
 }
 
+/* ─── Traceability ─── */
+export function useTraceability(projectId) {
+  return useQuery({
+    queryKey: ['traceability', projectId],
+    queryFn: () => client.get(`/projects/${projectId}/traceability`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useGaps(projectId) {
+  return useQuery({
+    queryKey: ['gaps', projectId],
+    queryFn: () => client.get(`/projects/${projectId}/gaps`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
 /* ─── Referrals ─── */
 export function useReferralStats() {
   return useQuery({

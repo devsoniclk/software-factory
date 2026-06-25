@@ -11,6 +11,7 @@ from backend.services.audit_service import audit_service
 from backend.services.ears import validate_criteria
 from backend.api.versions import snapshot
 from backend.services.knowledge_graph import kg
+from backend.services import doc_store
 
 router = APIRouter(prefix="/projects/{project_id}/requirements", tags=["requirements"])
 
@@ -85,6 +86,10 @@ async def create_requirement(
     )
 
     await audit_service.log_create(db, "requirement", req.id, {"req_id": req_id, "title": req.title})
+    try:
+        doc_store.save_requirement(project_id, req)
+    except Exception:
+        pass
     return req
 
 
@@ -173,6 +178,10 @@ async def update_requirement(
         "title": req.title,
         "description": req.description,
     })
+    try:
+        doc_store.save_requirement(project_id, req)
+    except Exception:
+        pass
     return req
 
 

@@ -4,6 +4,8 @@ import { Plus, Sparkles, FileText, CheckCircle2, AlertTriangle, ChevronDown, X, 
 import GlassCard from '../components/GlassCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
+import MarkdownEditor from '../components/MarkdownEditor';
+import DiffViewer from '../components/DiffViewer';
 import { PriorityBadge, StatusBadge, AIBadge } from '../components/Badge';
 import {
   useProjects, useRequirements, useCreateRequirement, useUpdateRequirement,
@@ -50,7 +52,10 @@ function ReqIdBadge({ reqId }) {
 function VersionHistory({ entityType, entityId, onClose }) {
   const { data: versions, isLoading } = useVersionHistory(entityType, entityId);
   const [selectedVersion, setSelectedVersion] = useState(null);
+  const [diffMode, setDiffMode] = useState(false);
   const { data: versionContent } = useVersionContent(entityType, entityId, selectedVersion);
+  const prevVer = selectedVersion && selectedVersion > 1 ? selectedVersion - 1 : null;
+  const { data: prevContent } = useVersionContent(entityType, entityId, prevVer);
 
   return (
     <div>
@@ -112,36 +117,52 @@ function VersionHistory({ entityType, entityId, onClose }) {
             exit={{ opacity: 0, height: 0 }}
             style={{ overflow: 'hidden', marginTop: 12 }}
           >
-            <div style={{
-              padding: 14, borderRadius: 8,
-              background: 'var(--color-bg-secondary)', border: '1px solid var(--border)',
-            }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                Version {selectedVersion} Content
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div>
-                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>Title</p>
-                  <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{versionContent.content?.title}</p>
-                </div>
-                {versionContent.content?.description && (
-                  <div>
-                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>Description</p>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{versionContent.content.description}</p>
-                  </div>
-                )}
-                {versionContent.content?.acceptance_criteria?.length > 0 && (
-                  <div>
-                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>Acceptance Criteria</p>
-                    {versionContent.content.acceptance_criteria.map((ac, i) => (
-                      <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 6, marginBottom: 4 }}>
-                        <CheckCircle2 size={11} style={{ flexShrink: 0, marginTop: 2, color: 'var(--status-success)' }} />
-                        {ac}
-                      </div>
-                    ))}
-                  </div>
+            <div style={{ padding: 14, borderRadius: 8, background: 'var(--color-bg-secondary)', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Version {selectedVersion}
+                </p>
+                {prevVer && (
+                  <button
+                    onClick={() => setDiffMode((d) => !d)}
+                    style={{ fontSize: 11, color: diffMode ? 'var(--accent)' : 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
+                  >
+                    {diffMode ? 'Hide diff' : `Show diff vs v${prevVer}`}
+                  </button>
                 )}
               </div>
+              {diffMode && prevContent ? (
+                <DiffViewer
+                  oldContent={[prevContent.content?.title || '', prevContent.content?.description || '', ...(prevContent.content?.acceptance_criteria || [])].join('\n\n')}
+                  newContent={[versionContent.content?.title || '', versionContent.content?.description || '', ...(versionContent.content?.acceptance_criteria || [])].join('\n\n')}
+                  oldLabel={`v${prevVer}`}
+                  newLabel={`v${selectedVersion}`}
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div>
+                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>Title</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{versionContent.content?.title}</p>
+                  </div>
+                  {versionContent.content?.description && (
+                    <div>
+                      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>Description</p>
+                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{versionContent.content.description}</p>
+                    </div>
+                  )}
+                  {versionContent.content?.acceptance_criteria?.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>Acceptance Criteria</p>
+                      {versionContent.content.acceptance_criteria.map((ac, i) => (
+                        <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 6, marginBottom: 4 }}>
+                          <CheckCircle2 size={11} style={{ flexShrink: 0, marginTop: 2, color: 'var(--status-success)' }} />
+                          {ac}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -430,7 +451,7 @@ export default function RequirementsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Description</label>
-              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="input-base" style={{ resize: 'none' }} />
+              <MarkdownEditor value={form.description || ''} onChange={(v) => setForm({ ...form, description: v })} rows={4} placeholder="Describe the requirement (markdown supported)" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Priority</label>
@@ -466,7 +487,7 @@ export default function RequirementsPage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Description</label>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Describe the requirement" className="input-base" style={{ resize: 'none' }} />
+            <MarkdownEditor value={form.description || ''} onChange={(v) => setForm({ ...form, description: v })} rows={4} placeholder="Describe the requirement (markdown supported)" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Priority</label>

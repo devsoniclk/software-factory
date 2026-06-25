@@ -11,6 +11,7 @@ from backend.models.schemas import BlueprintCreate, BlueprintResponse
 from backend.services.audit_service import audit_service
 from backend.services.blueprint_parser import parse_dsl, sync_to_kg
 from backend.api.versions import snapshot
+from backend.services import doc_store
 
 router = APIRouter(prefix="/projects/{project_id}/blueprints", tags=["blueprints"])
 
@@ -80,6 +81,10 @@ async def create_blueprint(
     )
 
     await audit_service.log_create(db, "blueprint", bp.id, {"bp_id": bp_id, "name": bp.name})
+    try:
+        doc_store.save_blueprint(project_id, bp)
+    except Exception:
+        pass
     return bp
 
 
@@ -156,6 +161,10 @@ async def update_blueprint(
         "name": bp.name,
         "version": bp.version,
     })
+    try:
+        doc_store.save_blueprint(project_id, bp)
+    except Exception:
+        pass
     return bp
 
 
