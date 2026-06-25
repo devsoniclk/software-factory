@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import MarkdownEditor from '../components/MarkdownEditor';
 import DiffViewer from '../components/DiffViewer';
+import AIReviewModal from '../components/AIReviewModal';
 import { StatusBadge, AIBadge } from '../components/Badge';
 import {
   useProjects, useBlueprints, useCreateBlueprint, useUpdateBlueprint,
@@ -194,6 +195,7 @@ export default function BlueprintsPage() {
   const [editMode, setEditMode] = useState(false);
   const [detailTab, setDetailTab] = useState('overview');
   const [form, setForm] = useState(BLANK_FORM);
+  const [aiReviewBp, setAiReviewBp] = useState(null);
 
   const { data: projects } = useProjects();
   const projectList = Array.isArray(projects) ? projects : projects?.items || projects?.projects || [];
@@ -285,7 +287,15 @@ export default function BlueprintsPage() {
             <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
           </div>
           <button
-            onClick={() => projectId && genBp.mutate({ projectId })}
+            onClick={() => projectId && genBp.mutate(
+              { projectId },
+              {
+                onSuccess: (data) => {
+                  const items = Array.isArray(data) ? data : (data?.blueprints || data?.items || (data?.id ? [data] : []));
+                  if (items.length > 0) setAiReviewBp(items.map((b, i) => ({ ...b, id: b.id || `ai-bp-${i}` })));
+                },
+              }
+            )}
             disabled={!projectId || genBp.isPending}
             className="btn-ai"
           >
@@ -471,6 +481,22 @@ export default function BlueprintsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* AI Review Modal — shown after blueprint generation */}
+      {aiReviewBp && (
+        <AIReviewModal
+          title="Review AI-Generated Blueprint"
+          items={aiReviewBp}
+          renderItem={(item) => (
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{item.name}</div>
+              {item.bp_id && <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-tertiary)', marginTop: 2 }}>{item.bp_id}</div>}
+            </div>
+          )}
+          onConfirm={() => setAiReviewBp(null)}
+          onCancel={() => setAiReviewBp(null)}
+        />
+      )}
     </div>
   );
 }

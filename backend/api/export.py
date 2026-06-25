@@ -223,3 +223,39 @@ async def export_pdf(project_id: str, db: AsyncSession = Depends(get_db)):
                 "Content-Disposition": f'inline; filename="{project.name}.html"',
             },
         )
+
+
+@router.post("/project/{project_id}/git-init")
+async def export_git_init(project_id: str, db: AsyncSession = Depends(get_db)):
+    """Initialize a git repo and commit project docs to ~/1024Studio/exports/<project_name>/."""
+    import os, subprocess, tempfile, pathlib
+
+    project, reqs, bps, wos = await _fetch_data(project_id, db)
+    md = _build_markdown(project, reqs, bps, wos)
+
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in project.name)
+    export_dir = pathlib.Path.home() / "1024Studio" / "exports" / safe_name
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    md_path = export_dir / "README.md"
+    md_path.write_text(md, encoding="utf-8")
+
+    git = ["git", "-C", str(export_dir)]
+
+    def run(*args):
+        return subprocess.run([*git, *args], capture_output=True, text=True)
+
+    # Init repo if needed
+    if not (export_dir / ".git").exists():
+        run("init")
+        run("config", "user.email", "studio@1024.local")
+        run("config", "user.name", "1024 Studio")
+
+    run("add", "README.md")
+    result = run("commit", "-m", f"Export: {project.name}")
+
+    return {
+        "path": str(export_dir),
+        "committed": result.returncode == 0,
+        "message": result.stdout.strip() or result.stderr.strip(),
+    }

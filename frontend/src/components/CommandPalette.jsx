@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, LayoutDashboard, FileText, Layers, ListChecks,
   FlaskConical, MessageSquare, GitFork, Shield, Cpu, Settings,
+  Zap, Link2, LayoutTemplate, Database, BarChart2,
 } from 'lucide-react';
 
 const commands = [
@@ -16,7 +17,12 @@ const commands = [
   { id: 'graph',        label: 'Go to Knowledge Graph', icon: GitFork,          path: '/graph' },
   { id: 'audit',        label: 'Go to Audit Trail',     icon: Shield,           path: '/audit' },
   { id: 'models',       label: 'Go to Model Manager',   icon: Cpu,              path: '/models' },
-  { id: 'settings',     label: 'Open Settings',         icon: Settings,         path: '/' },
+  { id: 'tokens',       label: 'Go to Token Usage',     icon: Zap,              path: '/tokens' },
+  { id: 'traceability', label: 'Go to Traceability',    icon: Link2,            path: '/traceability' },
+  { id: 'templates',    label: 'Go to Templates',       icon: LayoutTemplate,   path: '/templates' },
+  { id: 'er-diagram',   label: 'Go to ER Diagram',      icon: Database,         path: '/er-diagram' },
+  { id: 'analytics',    label: 'Go to Analytics',       icon: BarChart2,        path: '/analytics' },
+  { id: 'settings',     label: 'Open Settings',         icon: Settings,         path: '/settings' },
 ];
 
 export default function CommandPalette({ externalOpen, onExternalClose }) {

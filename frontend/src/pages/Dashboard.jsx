@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, ArrowUpRight, CheckCircle2, GitBranch, Sparkles } from 'lucide-react';
+import { Plus, ArrowUpRight, CheckCircle2, GitBranch, Sparkles, GitCommit } from 'lucide-react';
 import Modal from '../components/Modal';
 import ProductInterviewModal from '../components/ProductInterviewModal';
-import { useProjects, useCreateProject, useRequirements, useBlueprints, useWorkOrders, useFeedback } from '../api/hooks';
+import { useProjects, useCreateProject, useRequirements, useBlueprints, useWorkOrders, useFeedback, useGitExport } from '../api/hooks';
 
 const stagger = (i) => ({ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.22, delay: i * 0.05, ease: [0.4, 0, 0.2, 1] } });
 
@@ -61,6 +61,8 @@ export default function Dashboard() {
 
   const { data: projects, isLoading: projectsLoading } = useProjects();
   const createProject = useCreateProject();
+  const gitExport = useGitExport();
+  const [exportMsg, setExportMsg] = useState({});
   const projectList = Array.isArray(projects) ? projects : projects?.items || projects?.projects || [];
 
   // Grab counts for the first project (or aggregate if multiple)
@@ -158,6 +160,13 @@ export default function Dashboard() {
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: 11, fontWeight: 500, color: 'var(--accent)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
                   >
                     <Sparkles size={10} strokeWidth={1.5} /> Overview
+                  </button>
+                  <button
+                    onClick={(e) => { e.preventDefault(); const pid = p.id || p.project_id; gitExport.mutate(pid, { onSuccess: (d) => setExportMsg((m) => ({ ...m, [pid]: `✓ ${d.path}` })), onError: () => setExportMsg((m) => ({ ...m, [pid]: 'Export failed' })) }); }}
+                    title={exportMsg[p.id || p.project_id] || 'Export project as git repo'}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    <GitCommit size={10} strokeWidth={1.5} /> Git Export
                   </button>
                   <StatusPill status="active" />
                   <ArrowUpRight size={13} strokeWidth={1.5} style={{ color: 'var(--text-tertiary)' }} />

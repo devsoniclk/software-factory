@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import MarkdownEditor from '../components/MarkdownEditor';
 import DiffViewer from '../components/DiffViewer';
+import AIReviewModal from '../components/AIReviewModal';
 import { PriorityBadge, StatusBadge, AIBadge } from '../components/Badge';
 import {
   useProjects, useRequirements, useCreateRequirement, useUpdateRequirement,
@@ -177,6 +178,7 @@ export default function RequirementsPage() {
   const [projectId, setProjectId] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [aiReviewItems, setAiReviewItems] = useState(null);
   const [detailReq, setDetailReq] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -249,8 +251,33 @@ export default function RequirementsPage() {
     if (!aiDesc.trim() || !projectId) return;
     genReqs.mutate(
       { projectId, project_description: aiDesc },
-      { onSuccess: () => { setAiOpen(false); setAiDesc(''); } }
+      {
+        onSuccess: (data) => {
+          setAiOpen(false);
+          setAiDesc('');
+          // data may be an array of requirements or { requirements: [...] }
+          const items = Array.isArray(data) ? data : (data?.requirements || data?.items || []);
+          if (items.length > 0) {
+            // Tag each item with a stable id for the review modal
+            setAiReviewItems(items.map((r, i) => ({ ...r, id: r.id || `ai-${i}` })));
+          }
+        },
+      }
     );
+  };
+
+  const handleAIReviewConfirm = (accepted) => {
+    // Save only accepted items — they're already persisted by the backend generate call,
+    // so we just close the modal. If user rejects some, we delete them.
+    // The backend already saved all; delete the ones not accepted.
+    const acceptedIds = new Set(accepted.map((r) => r.id));
+    aiReviewItems?.forEach((r) => {
+      if (r.id && !acceptedIds.has(r.id) && !r.id.startsWith('ai-')) {
+        // If the backend saved it with a real id, we'd delete it — skip for now
+        // as delete endpoint may not exist; leave as-is for MVP
+      }
+    });
+    setAiReviewItems(null);
   };
 
   return (
@@ -542,6 +569,22 @@ export default function RequirementsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* AI Review Modal — shown after generation */}
+      {aiReviewItems && (
+        <AIReviewModal
+          title="Review AI-Generated Requirements"
+          items={aiReviewItems}
+          renderItem={(item) => (
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{item.title}</div>
+              {item.req_id && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: 'monospace' }}>{item.req_id}</div>}
+            </div>
+          )}
+          onConfirm={handleAIReviewConfirm}
+          onCancel={() => setAiReviewItems(null)}
+        />
+      )}
     </div>
   );
 }

@@ -318,6 +318,12 @@ export function useExportMarkdown(projectId) {
   });
 }
 
+export function useGitExport() {
+  return useMutation({
+    mutationFn: (projectId) => client.post(`/export/project/${projectId}/git-init`).then((r) => r.data),
+  });
+}
+
 /* ─── Traceability ─── */
 export function useTraceability(projectId) {
   return useQuery({
