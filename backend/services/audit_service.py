@@ -1,5 +1,6 @@
 """Audit service : logs every state change to AuditLog table."""
 import json
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.database import AuditLog
 
@@ -14,8 +15,8 @@ class AuditService:
         entity_id: str,
         action: str,
         actor: str = "user",
-        before: dict | None = None,
-        after: dict | None = None,
+        before: Optional[dict] = None,
+        after: Optional[dict] = None,
         rationale: str = "",
     ) -> AuditLog:
         entry = AuditLog(

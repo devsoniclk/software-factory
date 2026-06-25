@@ -1,7 +1,9 @@
 """Ollama / provider management router."""
 import httpx
+import json
 import time
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from backend.config.settings import settings, PROVIDERS
 from backend.services.llm_client import llm_client
 from backend.models.schemas import SwitchProviderRequest, PullModelRequest
@@ -24,10 +26,12 @@ async def provider_status():
                 ollama_running = resp.status_code == 200
         except Exception:
             pass
+    status = "running" if (not is_ollama or ollama_running) else "not_running"
     return {
         "provider": settings.active_provider,
         "provider_name": provider_cfg.get("name", ""),
         "model": settings.active_model,
+        "status": status,
         "offline": provider_cfg.get("offline", False),
         "ollama_running": ollama_running if is_ollama else None,
     }
@@ -72,6 +76,31 @@ async def pull_model(body: PullModelRequest):
         raise HTTPException(status_code=503, detail="Ollama is not running. Start it with: ollama serve")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/pull/stream")
+async def pull_model_stream(name: str):
+    """Pull/download an Ollama model with SSE progress streaming."""
+    if settings.active_provider != "ollama":
+        raise HTTPException(status_code=400, detail="Pull only works with Ollama provider")
+
+    async def event_generator():
+        try:
+            async with httpx.AsyncClient(timeout=600.0) as client:
+                async with client.stream("POST", f"{OLLAMA_BASE}/api/pull", json={"name": name}) as resp:
+                    if resp.status_code != 200:
+                        yield f"data: {json.dumps({'error': f'Ollama returned {resp.status_code}'})}\n\n"
+                        return
+                    async for line in resp.aiter_lines():
+                        if line.strip():
+                            yield f"data: {line}\n\n"
+            yield f"data: {json.dumps({'status': 'done', 'model': name})}\n\n"
+        except httpx.ConnectError:
+            yield f"data: {json.dumps({'error': 'Ollama is not running. Start it with: ollama serve'})}\n\n"
+        except Exception as exc:
+            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @router.post("/switch")

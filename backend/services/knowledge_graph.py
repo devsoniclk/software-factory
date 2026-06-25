@@ -1,5 +1,6 @@
 """SQLite-based knowledge graph using KGNode / KGEdge models."""
 import json
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from backend.models.database import KGNode, KGEdge, uid, now_iso
@@ -16,7 +17,7 @@ class KnowledgeGraph:
         node_type: str,
         title: str,
         content: str = "",
-        metadata: dict | None = None,
+        metadata: Optional[dict] = None,
     ) -> KGNode:
         node = KGNode(
             id=node_id,
@@ -26,7 +27,7 @@ class KnowledgeGraph:
             content=content,
             metadata_json=json.dumps(metadata or {}),
         )
-        db.merge(node)
+        await db.merge(node)
         await db.commit()
         return node
 
@@ -37,7 +38,7 @@ class KnowledgeGraph:
         target_id: str,
         relationship: str,
         weight: float = 1.0,
-        metadata: dict | None = None,
+        metadata: Optional[dict] = None,
     ) -> KGEdge:
         edge = KGEdge(
             source_id=source_id,
@@ -46,7 +47,7 @@ class KnowledgeGraph:
             weight=weight,
             metadata_json=json.dumps(metadata or {}),
         )
-        db.merge(edge)
+        await db.merge(edge)
         await db.commit()
         return edge
 
@@ -132,8 +133,8 @@ class KnowledgeGraph:
         project_id: str,
         title: str,
         content: str = "",
-        metadata: dict | None = None,
-        linked_to: list[tuple[str, str]] | None = None,
+        metadata: Optional[dict] = None,
+        linked_to: Optional[list] = None,
     ):
         """Create or update a node and optionally add edges."""
         await self.add_node(db, entity_id, project_id, entity_type, title, content, metadata)

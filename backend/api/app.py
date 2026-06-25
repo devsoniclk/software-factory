@@ -82,6 +82,7 @@ from backend.api.export import router as export_router
 from backend.api.referrals import router as referrals_router
 from backend.api.token_usage import router as token_usage_router
 from backend.api.versions import router as versions_router
+from backend.api.templates import router as templates_router
 
 app.include_router(health_router)
 app.include_router(projects_router)
@@ -98,3 +99,4 @@ app.include_router(export_router)
 app.include_router(referrals_router)
 app.include_router(token_usage_router)
 app.include_router(versions_router)
+app.include_router(templates_router)

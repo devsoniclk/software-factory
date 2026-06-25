@@ -364,3 +364,40 @@ export function useRedeemReferral() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['referral-stats'] }),
   });
 }
+
+/* ─── Templates ─── */
+export function useTemplates() {
+  return useQuery({
+    queryKey: ['templates'],
+    queryFn: () => client.get('/templates').then((r) => r.data),
+  });
+}
+
+export function useTemplate(templateId) {
+  return useQuery({
+    queryKey: ['template', templateId],
+    queryFn: () => client.get(`/templates/${templateId}`).then((r) => r.data),
+    enabled: !!templateId,
+  });
+}
+
+export function useApplyTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ templateId, project_name, project_description }) =>
+      client.post(`/templates/${templateId}/apply`, { project_name, project_description }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      qc.invalidateQueries({ queryKey: ['requirements'] });
+      qc.invalidateQueries({ queryKey: ['blueprints'] });
+    },
+  });
+}
+
+/* ─── Token Usage ─── */
+export function useTokenUsage(projectId) {
+  return useQuery({
+    queryKey: ['token-usage', projectId],
+    queryFn: () => client.get('/token-usage', { params: projectId ? { project_id: projectId } : {} }).then((r) => r.data),
+  });
+}

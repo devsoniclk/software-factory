@@ -13,7 +13,11 @@ import ModelManagerPage from './pages/ModelManagerPage';
 import SettingsPage from './pages/SettingsPage';
 import TokenUsagePage from './pages/TokenUsagePage';
 import TraceabilityPage from './pages/TraceabilityPage';
+import TemplatesPage from './pages/TemplatesPage';
 import { useTheme } from './hooks/useTheme';
+import { useProjects } from './api/hooks';
+import FirstLaunchWizard from './components/FirstLaunchWizard';
+import { useState } from 'react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,8 +27,20 @@ const queryClient = new QueryClient({
 
 function AppRoutes() {
   useTheme();
+  const { data: projects } = useProjects();
+  const projectList = Array.isArray(projects) ? projects : projects?.items || projects?.projects || [];
+  const [wizardDismissed, setWizardDismissed] = useState(() => localStorage.getItem('wizard_dismissed') === '1');
+
+  const showWizard = !wizardDismissed && projectList.length === 0 && projects !== undefined;
+
+  function handleWizardComplete() {
+    localStorage.setItem('wizard_dismissed', '1');
+    setWizardDismissed(true);
+  }
+
   return (
     <BrowserRouter>
+      {showWizard && <FirstLaunchWizard onComplete={handleWizardComplete} />}
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
@@ -39,6 +55,7 @@ function AppRoutes() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/tokens" element={<TokenUsagePage />} />
           <Route path="/traceability" element={<TraceabilityPage />} />
+          <Route path="/templates" element={<TemplatesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
