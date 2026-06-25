@@ -132,7 +132,7 @@ export default function KnowledgeGraphPage() {
         ctx.fillStyle = '#1D1D1F';
         ctx.font = `${n.type === 'project' ? 12 : 11}px -apple-system, Inter, sans-serif`;
         ctx.textAlign = 'center';
-        const label = (n.label || n.name || n.id || '');
+        const label = (n.title || n.label || n.name || n.id || '');
         ctx.fillText(label.length > 20 ? label.slice(0, 18) + '…' : label, n.x, n.y + r + 14);
       }
 

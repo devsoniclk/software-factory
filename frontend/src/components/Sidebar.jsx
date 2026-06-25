@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu, Zap, Link2, LayoutTemplate } from 'lucide-react';
+import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu, Zap, Link2, LayoutTemplate, Database, BarChart2 } from 'lucide-react';
 import { useProjects } from '../api/hooks';
 import { useState, useEffect, useRef } from 'react';
 import { useMobile } from '../hooks/useMobile';
@@ -22,6 +22,8 @@ const sectionTabs = [
   { to: '/tokens',       icon: Zap,           label: 'Tokens'       },
   { to: '/traceability', icon: Link2,          label: 'Traceability' },
   { to: '/templates',   icon: LayoutTemplate, label: 'Templates'    },
+  { to: '/er-diagram',  icon: Database,       label: 'ER Diagram'   },
+  { to: '/analytics',   icon: BarChart2,      label: 'Analytics'    },
 ];
 
 function NavItem({ to, icon: Icon, label, end }) {

@@ -394,6 +394,39 @@ export function useApplyTemplate() {
   });
 }
 
+/* ─── ER Diagram ─── */
+export function useERDiagram(projectId) {
+  return useQuery({
+    queryKey: ['er-diagram', projectId],
+    queryFn: () => client.get(`/er-diagram/project/${projectId}`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useBlueprintERDiagram(blueprintId) {
+  return useQuery({
+    queryKey: ['er-diagram-bp', blueprintId],
+    queryFn: () => client.get(`/er-diagram/blueprint/${blueprintId}`).then((r) => r.data),
+    enabled: !!blueprintId,
+  });
+}
+
+/* ─── Analytics ─── */
+export function useProjectAnalytics(projectId) {
+  return useQuery({
+    queryKey: ['analytics', projectId],
+    queryFn: () => client.get(`/analytics/project/${projectId}`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useGlobalSummary() {
+  return useQuery({
+    queryKey: ['analytics-summary'],
+    queryFn: () => client.get('/analytics/summary').then((r) => r.data),
+  });
+}
+
 /* ─── Token Usage ─── */
 export function useTokenUsage(projectId) {
   return useQuery({
