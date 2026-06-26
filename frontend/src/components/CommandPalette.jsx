@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, LayoutDashboard, FileText, Layers, ListChecks,
   FlaskConical, MessageSquare, GitFork, Shield, Cpu, Settings,
-  Zap, Link2, LayoutTemplate, Database, BarChart2,
+  Zap, Link2, LayoutTemplate, Database, BarChart2, Puzzle,
 } from 'lucide-react';
 
 const commands = [
@@ -22,6 +22,7 @@ const commands = [
   { id: 'templates',    label: 'Go to Templates',       icon: LayoutTemplate,   path: '/templates' },
   { id: 'er-diagram',   label: 'Go to ER Diagram',      icon: Database,         path: '/er-diagram' },
   { id: 'analytics',    label: 'Go to Analytics',       icon: BarChart2,        path: '/analytics' },
+  { id: 'plugins',      label: 'Go to Plugins',         icon: Puzzle,           path: '/plugins' },
   { id: 'settings',     label: 'Open Settings',         icon: Settings,         path: '/settings' },
 ];
 

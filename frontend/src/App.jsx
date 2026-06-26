@@ -16,6 +16,7 @@ import TraceabilityPage from './pages/TraceabilityPage';
 import TemplatesPage from './pages/TemplatesPage';
 import ERDiagramPage from './pages/ERDiagramPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import PluginsPage from './pages/PluginsPage';
 import { useTheme } from './hooks/useTheme';
 import { useProjects } from './api/hooks';
 import FirstLaunchWizard from './components/FirstLaunchWizard';
@@ -60,6 +61,7 @@ function AppRoutes() {
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/er-diagram" element={<ERDiagramPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/plugins" element={<PluginsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
