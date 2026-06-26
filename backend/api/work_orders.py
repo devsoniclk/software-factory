@@ -1,5 +1,7 @@
 """Work Orders CRUD router with status and output updates."""
 import json
+import re
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -18,14 +20,23 @@ WO_VALID_TRANSITIONS = {
 }
 
 
+def _bp_prefix(name: str) -> str:
+    letters = re.sub(r"[^a-zA-Z]", "", name).upper()
+    return letters[:4] if letters else "WRK"
+
+
 @router.post("", response_model=WorkOrderResponse)
 async def create_work_order(blueprint_id: str, body: WorkOrderCreate, db: AsyncSession = Depends(get_db)):
     bp = await db.get(Blueprint, blueprint_id)
     if not bp:
         raise HTTPException(status_code=404, detail="Blueprint not found")
+    bp.wo_counter = (bp.wo_counter or 0) + 1
+    prefix = _bp_prefix(bp.name)
+    wo_id_str = f"WO-{prefix}-{bp.wo_counter:03d}"
     wo = WorkOrder(
         id=uid(),
         blueprint_id=blueprint_id,
+        wo_id=wo_id_str,
         title=body.title,
         description=body.description,
         requirement_ids_json=json.dumps(body.requirement_ids),
@@ -38,7 +49,7 @@ async def create_work_order(blueprint_id: str, body: WorkOrderCreate, db: AsyncS
     return wo
 
 
-@router.get("", response_model=list[WorkOrderResponse])
+@router.get("", response_model=List[WorkOrderResponse])
 async def list_work_orders(
     blueprint_id: str,
     skip: int = Query(0, ge=0),
@@ -56,11 +67,10 @@ async def list_work_orders(
 
 
 @router.patch("/{wo_id}/status")
-async def update_work_order_status(blueprint_id: str, wo_id: str, body: dict, db: AsyncSession = Depends(get_db)):
+async def update_work_order_status(blueprint_id: str, wo_id: str, new_status: str = Query(...), db: AsyncSession = Depends(get_db)):
     wo = await db.get(WorkOrder, wo_id)
     if not wo or wo.blueprint_id != blueprint_id:
         raise HTTPException(status_code=404, detail="Work order not found")
-    new_status = body.get("status", "")
     old_status = wo.status.value if hasattr(wo.status, "value") else wo.status
     allowed = WO_VALID_TRANSITIONS.get(old_status, [])
     if new_status not in allowed:

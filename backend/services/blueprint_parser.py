@@ -33,7 +33,9 @@ _SECTION_RE = re.compile(
     r"^##\s+(Component|Model|ADR):\s*(.+)$",
     re.IGNORECASE | re.MULTILINE,
 )
-_PROP_RE = re.compile(r"^\*\*(.+?)\*\*:\s*(.+)$", re.MULTILINE)
+# Match both **Key:** value  (colon inside bold) and **Key**: value (colon outside bold)
+_PROP_RE = re.compile(r"\*\*([A-Za-z][^*]+?):?\*\*:?\s+(.+)", re.MULTILINE)
+_PLAIN_PROP_RE = re.compile(r"^([A-Za-z][A-Za-z0-9_ ]+?):\s*(.+)$", re.MULTILINE)
 
 # Reference patterns
 _COMP_REF_RE = re.compile(r"#([A-Za-z][A-Za-z0-9_]*)")
@@ -87,7 +89,12 @@ def parse_dsl(dsl_content: str, project_id: str, blueprint_id: str) -> Dict[str,
 
     for node_type, name, body in sections:
         nid = _node_id(project_id, node_type, name)
+        # Accept both **Bold:** and plain Key: value styles
         props = {m.group(1).lower(): m.group(2).strip() for m in _PROP_RE.finditer(body)}
+        for m in _PLAIN_PROP_RE.finditer(body):
+            key = m.group(1).strip().lower()
+            if key not in props:
+                props[key] = m.group(2).strip()
 
         nodes.append({
             "id": nid,

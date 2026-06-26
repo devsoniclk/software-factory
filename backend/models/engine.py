@@ -23,11 +23,25 @@ async def _apply_pragmas(conn):
     await conn.execute(text("PRAGMA mmap_size=268435456"))  # 256MB mmap
 
 
+async def _migrate(conn):
+    """Apply additive schema migrations (safe to run on every startup)."""
+    migrations = [
+        "ALTER TABLE blueprints ADD COLUMN wo_counter INTEGER DEFAULT 0",
+        "ALTER TABLE work_orders ADD COLUMN wo_id TEXT DEFAULT ''",
+    ]
+    for sql in migrations:
+        try:
+            await conn.execute(text(sql))
+        except Exception:
+            pass  # column already exists
+
+
 async def init_db():
     import backend.models.database  # noqa: ensure all models are registered with Base
     async with engine.begin() as conn:
         await _apply_pragmas(conn)
         await conn.run_sync(Base.metadata.create_all)
+        await _migrate(conn)
 
 
 async def get_db():

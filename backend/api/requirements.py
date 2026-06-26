@@ -189,13 +189,12 @@ async def update_requirement(
 async def update_status(
     project_id: str,
     req_id: str,
-    body: dict,
+    new_status: str = Query(...),
     db: AsyncSession = Depends(get_db),
 ):
     req = await db.get(Requirement, req_id)
     if not req or req.project_id != project_id:
         raise HTTPException(status_code=404, detail="Requirement not found")
-    new_status = body.get("status", "")
     old_status = req.status.value if hasattr(req.status, "value") else req.status
     allowed = VALID_TRANSITIONS.get(old_status, [])
     if new_status not in allowed:

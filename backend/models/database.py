@@ -89,6 +89,7 @@ class Blueprint(Base):
     components_json = Column(Text, default="[]")
     constraints_json = Column(Text, default="[]")
     version = Column(Integer, default=1)
+    wo_counter = Column(Integer, default=0)              # monotonic counter for WO IDs
     created_at = Column(String, default=now_iso)
     project = relationship("Project", back_populates="blueprints")
     work_orders = relationship("WorkOrder", cascade="all,delete-orphan", back_populates="blueprint")
@@ -102,6 +103,7 @@ class WorkOrder(Base):
     )
     id = Column(String, primary_key=True, default=uid)
     blueprint_id = Column(String, ForeignKey("blueprints.id", ondelete="CASCADE"), nullable=False)
+    wo_id = Column(String(30), default="")    # e.g. WO-AUTH-001
     requirement_ids_json = Column(Text, default="[]")
     title = Column(String(1000), nullable=False)
     description = Column(Text, default="")

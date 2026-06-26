@@ -91,6 +91,7 @@ class WorkOrderCreate(BaseModel):
 class WorkOrderResponse(BaseModel):
     id: str
     blueprint_id: str
+    wo_id: str = ""
     requirement_ids_json: str
     title: str
     description: str

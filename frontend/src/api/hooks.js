@@ -437,6 +437,6 @@ export function useGlobalSummary() {
 export function useTokenUsage(projectId) {
   return useQuery({
     queryKey: ['token-usage', projectId],
-    queryFn: () => client.get('/token-usage', { params: projectId ? { project_id: projectId } : {} }).then((r) => r.data),
+    queryFn: () => client.get('/token-usage/global').then((r) => r.data),
   });
 }
