@@ -1,14 +1,25 @@
 import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Sparkles, FileText, CheckCircle2, AlertTriangle, ChevronDown, X, History, Edit2, Clock } from 'lucide-react';
+import { Plus, Sparkles, FileText, CheckCircle2, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, X, History, Edit2, Clock } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { PriorityBadge, StatusBadge, AIBadge } from '../components/Badge';
 import {
   useProjects, useRequirements, useCreateRequirement, useUpdateRequirement,
-  useGenerateRequirements, useVersionHistory, useVersionContent,
+  useUpdateRequirementStatus, useGenerateRequirements, useVersionHistory, useVersionContent,
 } from '../api/hooks';
+
+const PAGE_SIZE = 20;
+
+// Valid status transitions
+const REQ_TRANSITIONS = {
+  draft:       ['review'],
+  review:      ['approved', 'draft'],
+  approved:    ['implemented'],
+  implemented: [],
+};
 
 const stagger = (i) => ({
   initial: { opacity: 0, y: 6 },
@@ -16,17 +27,39 @@ const stagger = (i) => ({
   transition: { duration: 0.2, delay: i * 0.04, ease: [0.4, 0, 0.2, 1] },
 });
 
-function EARSWarningBadge({ count }) {
+function EARSWarningBadge({ warnings, count }) {
+  const [showList, setShowList] = useState(false);
   if (!count) return null;
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 3,
-      padding: '1px 6px', borderRadius: 'var(--radius-full)',
-      background: 'rgba(255, 159, 10, 0.12)', border: '1px solid rgba(255, 159, 10, 0.3)',
-      fontSize: 11, fontWeight: 500, color: 'var(--status-warning)',
-    }}>
+    <span
+      onClick={(e) => { e.stopPropagation(); setShowList((v) => !v); }}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 3,
+        padding: '1px 6px', borderRadius: 'var(--radius-full)',
+        background: 'rgba(255, 159, 10, 0.12)', border: '1px solid rgba(255, 159, 10, 0.3)',
+        fontSize: 11, fontWeight: 500, color: 'var(--status-warning)',
+        cursor: 'pointer', position: 'relative',
+      }}
+    >
       <AlertTriangle size={9} strokeWidth={2} />
-      {count} EARS
+      {count} EARS warning{count !== 1 ? 's' : ''}
+      {showList && Array.isArray(warnings) && warnings.length > 0 && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 20,
+            background: 'var(--color-bg)', border: '1px solid var(--border)',
+            borderRadius: 8, boxShadow: 'var(--shadow-md)', padding: '8px 10px',
+            minWidth: 240, maxWidth: 320,
+          }}
+        >
+          {warnings.map((w, i) => (
+            <div key={i} style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, paddingBottom: 4 }}>
+              {typeof w === 'string' ? w : w.message || w.suggestion || JSON.stringify(w)}
+            </div>
+          ))}
+        </div>
+      )}
     </span>
   );
 }
@@ -150,10 +183,42 @@ function VersionHistory({ entityType, entityId, onClose }) {
   );
 }
 
+function Pagination({ page, setPage, count }) {
+  const hasPrev = page > 0;
+  const hasNext = count === PAGE_SIZE; // if we got a full page, there may be more
+  if (!hasPrev && !hasNext) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 16 }}>
+      <button
+        onClick={() => setPage((p) => Math.max(0, p - 1))}
+        disabled={!hasPrev}
+        className="btn-ghost"
+        style={{ padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+      >
+        <ChevronLeft size={13} strokeWidth={1.5} /> Previous
+      </button>
+      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Page {page + 1}</span>
+      <button
+        onClick={() => setPage((p) => p + 1)}
+        disabled={!hasNext}
+        className="btn-ghost"
+        style={{ padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+      >
+        Next <ChevronRight size={13} strokeWidth={1.5} />
+      </button>
+    </div>
+  );
+}
+
 const BLANK_FORM = { title: '', description: '', priority: 3, acceptance_criteria: '' };
 
 export default function RequirementsPage() {
-  const [projectId, setProjectId] = useState('');
+  const { projectId: urlProjectId } = useParams();
+  const navigate = useNavigate();
+  const [localProjectId, setLocalProjectId] = useState('');
+  const projectId = urlProjectId || localProjectId;
+
+  const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [detailReq, setDetailReq] = useState(null);
@@ -161,23 +226,28 @@ export default function RequirementsPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [form, setForm] = useState(BLANK_FORM);
   const [aiDesc, setAiDesc] = useState('');
+  const [statusError, setStatusError] = useState(null);
 
   const { data: projects } = useProjects();
   const projectList = Array.isArray(projects) ? projects : projects?.items || projects?.projects || [];
-  const { data: requirements, isLoading } = useRequirements(projectId);
+  const { data: requirements, isLoading } = useRequirements(projectId, page);
   const reqList = Array.isArray(requirements) ? requirements : requirements?.items || requirements?.requirements || [];
   const createReq = useCreateRequirement(projectId);
   const updateReq = useUpdateRequirement(projectId);
+  const updateStatus = useUpdateRequirementStatus(projectId);
   const genReqs = useGenerateRequirements();
 
   const openDetail = (r) => {
     setDetailReq(r);
     setEditMode(false);
     setHistoryOpen(false);
+    setStatusError(null);
   };
 
   const startEdit = () => {
-    const ac = JSON.parse(detailReq.acceptance_criteria_json || '[]');
+    const ac = Array.isArray(detailReq.acceptance_criteria)
+      ? detailReq.acceptance_criteria
+      : (detailReq.acceptance_criteria_json ? JSON.parse(detailReq.acceptance_criteria_json) : []);
     setForm({
       title: detailReq.title,
       description: detailReq.description,
@@ -224,12 +294,38 @@ export default function RequirementsPage() {
     );
   };
 
+  const handleStatusChange = (newStatus) => {
+    if (!detailReq) return;
+    setStatusError(null);
+    updateStatus.mutate(
+      { reqId: detailReq.id, status: newStatus },
+      {
+        onSuccess: (updated) => setDetailReq(updated),
+        onError: (err) => {
+          const body = err.response?.data;
+          if (body?.message) {
+            const allowed = body.allowed?.join(', ') || 'none';
+            setStatusError(`Cannot change status: ${body.message}. Allowed next statuses: ${allowed}`);
+          } else {
+            setStatusError('Status update failed.');
+          }
+        },
+      }
+    );
+  };
+
   const handleAIGenerate = () => {
     if (!aiDesc.trim() || !projectId) return;
     genReqs.mutate(
       { projectId, project_description: aiDesc },
       { onSuccess: () => { setAiOpen(false); setAiDesc(''); } }
     );
+  };
+
+  const handleProjectChange = (pid) => {
+    setLocalProjectId(pid);
+    setPage(0);
+    if (pid) navigate(`/project/${pid}/requirements`);
   };
 
   return (
@@ -240,28 +336,41 @@ export default function RequirementsPage() {
           <p className="page-subtitle">Define what needs to be built</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative' }}>
-            <select
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className="input-base"
-              style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}
-            >
-              <option value="">Select project</option>
-              {projectList.map((p) => (
-                <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>
-              ))}
-            </select>
-            <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          </div>
-          <button onClick={() => setAiOpen(true)} disabled={!projectId} className="btn-ai">
-            <Sparkles size={13} strokeWidth={1.5} /> AI Generate
+          {!urlProjectId && (
+            <div style={{ position: 'relative' }}>
+              <select
+                value={localProjectId}
+                onChange={(e) => handleProjectChange(e.target.value)}
+                className="input-base"
+                style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}
+              >
+                <option value="">Select project</option>
+                {projectList.map((p) => (
+                  <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+            </div>
+          )}
+          <button
+            onClick={() => setAiOpen(true)}
+            disabled={!projectId || genReqs.isPending}
+            className="btn-ai"
+          >
+            <Sparkles size={13} strokeWidth={1.5} />
+            {genReqs.isPending ? 'Generating…' : 'AI Generate'}
           </button>
           <button onClick={() => { setForm(BLANK_FORM); setCreateOpen(true); }} disabled={!projectId} className="btn-primary">
             <Plus size={14} strokeWidth={2} /> Add
           </button>
         </div>
       </div>
+
+      {genReqs.isPending && (
+        <div style={{ padding: '10px 14px', marginBottom: 12, borderRadius: 8, background: 'rgba(0,82,255,0.06)', border: '1px solid rgba(0,82,255,0.15)', fontSize: 13, color: 'var(--accent)' }}>
+          Generating requirements… this may take 20–30 seconds
+        </div>
+      )}
 
       {!projectId ? (
         <EmptyState icon={FileText} title="Select a project" description="Choose a project above to view its requirements." />
@@ -278,63 +387,73 @@ export default function RequirementsPage() {
           onAction={() => { setForm(BLANK_FORM); setCreateOpen(true); }}
         />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {reqList.map((r, i) => {
-            const ac = JSON.parse(r.acceptance_criteria_json || '[]');
-            const earWarn = JSON.parse(r.ears_warnings_json || '[]');
-            return (
-              <motion.div key={r.id} {...stagger(i)}>
-                <GlassCard
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => openDetail(r)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                        <ReqIdBadge reqId={r.req_id} />
-                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>{r.title}</span>
-                        {r.ai_generated && <AIBadge />}
-                        <EARSWarningBadge count={earWarn.length} />
-                      </div>
-                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {r.description}
-                      </p>
-                      {ac.length > 0 && (
-                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {ac.slice(0, 3).map((criterion, idx) => {
-                            const hasWarning = earWarn.some((w) => w.index === idx);
-                            return (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: hasWarning ? 'var(--status-warning)' : 'var(--text-secondary)' }}>
-                                {hasWarning
-                                  ? <AlertTriangle size={11} strokeWidth={1.5} style={{ marginTop: 1, flexShrink: 0 }} />
-                                  : <CheckCircle2 size={11} strokeWidth={1.5} style={{ marginTop: 1, flexShrink: 0, color: 'var(--status-success)' }} />
-                                }
-                                {criterion}
-                              </div>
-                            );
-                          })}
-                          {ac.length > 3 && (
-                            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 17 }}>+{ac.length - 3} more</span>
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {reqList.map((r, i) => {
+              // Support both new typed fields and old JSON strings
+              const ac = Array.isArray(r.acceptance_criteria)
+                ? r.acceptance_criteria
+                : (r.acceptance_criteria_json ? JSON.parse(r.acceptance_criteria_json) : []);
+              const earWarn = Array.isArray(r.ears_warnings)
+                ? r.ears_warnings
+                : (r.ears_warnings_json ? JSON.parse(r.ears_warnings_json) : []);
+              return (
+                <motion.div key={r.id} {...stagger(i)}>
+                  <GlassCard
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => openDetail(r)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                          <ReqIdBadge reqId={r.req_id} />
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>{r.title}</span>
+                          {r.ai_generated && <AIBadge />}
+                          {earWarn.length > 0 && (
+                            <EARSWarningBadge count={earWarn.length} warnings={earWarn} />
                           )}
                         </div>
-                      )}
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {r.description}
+                        </p>
+                        {ac.length > 0 && (
+                          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {ac.slice(0, 3).map((criterion, idx) => {
+                              const hasWarning = earWarn.some((w) => w.index === idx);
+                              return (
+                                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: hasWarning ? 'var(--status-warning)' : 'var(--text-secondary)' }}>
+                                  {hasWarning
+                                    ? <AlertTriangle size={11} strokeWidth={1.5} style={{ marginTop: 1, flexShrink: 0 }} />
+                                    : <CheckCircle2 size={11} strokeWidth={1.5} style={{ marginTop: 1, flexShrink: 0, color: 'var(--status-success)' }} />
+                                  }
+                                  {criterion}
+                                </div>
+                              );
+                            })}
+                            {ac.length > 3 && (
+                              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 17 }}>+{ac.length - 3} more</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <PriorityBadge level={r.priority} />
+                        <StatusBadge status={r.status || 'draft'} />
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                      <PriorityBadge level={r.priority} />
-                      <StatusBadge status={r.status || 'draft'} />
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
-            );
-          })}
-        </div>
+                  </GlassCard>
+                </motion.div>
+              );
+            })}
+          </div>
+          <Pagination page={page} setPage={setPage} count={reqList.length} />
+        </>
       )}
 
       {/* Detail / Edit modal */}
       <Modal
         isOpen={!!detailReq}
-        onClose={() => { setDetailReq(null); setEditMode(false); setHistoryOpen(false); }}
+        onClose={() => { setDetailReq(null); setEditMode(false); setHistoryOpen(false); setStatusError(null); }}
         title={editMode ? 'Edit Requirement' : (detailReq?.req_id ? `${detailReq.req_id}` : 'Requirement')}
       >
         {detailReq && !historyOpen && !editMode && (
@@ -358,6 +477,36 @@ export default function RequirementsPage() {
               </div>
             </div>
 
+            {/* Status transitions */}
+            {(() => {
+              const current = (detailReq.status || 'draft').toLowerCase();
+              const allowed = REQ_TRANSITIONS[current] || [];
+              if (!allowed.length) return null;
+              return (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Change Status</p>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {allowed.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleStatusChange(s)}
+                        disabled={updateStatus.isPending}
+                        className="btn-ghost"
+                        style={{ fontSize: 12, padding: '4px 10px', textTransform: 'capitalize' }}
+                      >
+                        → {s}
+                      </button>
+                    ))}
+                  </div>
+                  {statusError && (
+                    <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 6, background: 'rgba(196,0,10,0.06)', border: '1px solid rgba(196,0,10,0.2)', fontSize: 12, color: '#C4000A' }}>
+                      {statusError}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {detailReq.description && (
               <div>
                 <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Description</p>
@@ -366,14 +515,18 @@ export default function RequirementsPage() {
             )}
 
             {(() => {
-              const ac = JSON.parse(detailReq.acceptance_criteria_json || '[]');
-              const earWarn = JSON.parse(detailReq.ears_warnings_json || '[]');
+              const ac = Array.isArray(detailReq.acceptance_criteria)
+                ? detailReq.acceptance_criteria
+                : (detailReq.acceptance_criteria_json ? JSON.parse(detailReq.acceptance_criteria_json) : []);
+              const earWarn = Array.isArray(detailReq.ears_warnings)
+                ? detailReq.ears_warnings
+                : (detailReq.ears_warnings_json ? JSON.parse(detailReq.ears_warnings_json) : []);
               if (!ac.length) return null;
               return (
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                     <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Acceptance Criteria</p>
-                    {earWarn.length > 0 && <EARSWarningBadge count={earWarn.length} />}
+                    {earWarn.length > 0 && <EARSWarningBadge count={earWarn.length} warnings={earWarn} />}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {ac.map((criterion, idx) => {

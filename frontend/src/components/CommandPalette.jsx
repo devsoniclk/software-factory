@@ -1,32 +1,45 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, LayoutDashboard, FileText, Layers, ListChecks,
   FlaskConical, MessageSquare, GitFork, Shield, Cpu, Settings,
 } from 'lucide-react';
 
-const commands = [
-  { id: 'dashboard',    label: 'Go to Dashboard',       icon: LayoutDashboard, path: '/' },
-  { id: 'requirements', label: 'Go to Requirements',    icon: FileText,         path: '/requirements' },
-  { id: 'blueprints',   label: 'Go to Blueprints',      icon: Layers,           path: '/blueprints' },
-  { id: 'work-orders',  label: 'Go to Work Orders',     icon: ListChecks,       path: '/work-orders' },
-  { id: 'tests',        label: 'Go to Tests',           icon: FlaskConical,     path: '/tests' },
-  { id: 'feedback',     label: 'Go to Feedback',        icon: MessageSquare,    path: '/feedback' },
-  { id: 'graph',        label: 'Go to Knowledge Graph', icon: GitFork,          path: '/graph' },
-  { id: 'audit',        label: 'Go to Audit Trail',     icon: Shield,           path: '/audit' },
-  { id: 'models',       label: 'Go to Model Manager',   icon: Cpu,              path: '/models' },
-  { id: 'settings',     label: 'Open Settings',         icon: Settings,         path: '/' },
+const PROJECT_COMMANDS = [
+  { id: 'requirements', label: 'Go to Requirements',    icon: FileText,         section: 'requirements' },
+  { id: 'blueprints',   label: 'Go to Blueprints',      icon: Layers,           section: 'blueprints' },
+  { id: 'work-orders',  label: 'Go to Work Orders',     icon: ListChecks,       section: 'work-orders' },
+  { id: 'tests',        label: 'Go to Tests',           icon: FlaskConical,     section: 'tests' },
+  { id: 'feedback',     label: 'Go to Feedback',        icon: MessageSquare,    section: 'feedback' },
+  { id: 'graph',        label: 'Go to Knowledge Graph', icon: GitFork,          section: 'graph' },
 ];
 
-export default function CommandPalette({ externalOpen, onExternalClose }) {
+const GLOBAL_COMMANDS = [
+  { id: 'dashboard',    label: 'Go to Dashboard',       icon: LayoutDashboard, path: '/' },
+  { id: 'audit',        label: 'Go to Audit Trail',     icon: Shield,           path: '/audit' },
+  { id: 'models',       label: 'Go to Model Manager',   icon: Cpu,              path: '/models' },
+  { id: 'settings',     label: 'Open Settings',         icon: Settings,         path: '/settings' },
+];
+
+export default function CommandPalette({ externalOpen, onExternalClose, projectId: propProjectId }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen || internalOpen;
   const setOpen = (v) => { setInternalOpen(v); if (!v && onExternalClose) onExternalClose(); };
   const [query, setQuery]     = useState('');
   const [selected, setSelected] = useState(0);
   const navigate = useNavigate();
+  const params = useParams();
+  const currentProjectId = propProjectId || params.projectId;
   const inputRef = useRef(null);
+
+  const commands = useMemo(() => {
+    const projectCmds = PROJECT_COMMANDS.map((c) => ({
+      ...c,
+      path: currentProjectId ? `/project/${currentProjectId}/${c.section}` : `/${c.section}`,
+    }));
+    return [...projectCmds, ...GLOBAL_COMMANDS];
+  }, [currentProjectId]);
 
   useEffect(() => {
     if (externalOpen) { setQuery(''); setSelected(0); }
@@ -53,7 +66,7 @@ export default function CommandPalette({ externalOpen, onExternalClose }) {
     if (!query) return commands;
     const q = query.toLowerCase();
     return commands.filter((c) => c.label.toLowerCase().includes(q) || c.id.includes(q));
-  }, [query]);
+  }, [query, commands]);
 
   const execute = (cmd) => {
     navigate(cmd.path);

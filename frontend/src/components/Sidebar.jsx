@@ -1,4 +1,4 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu, Zap } from 'lucide-react';
 import { useProjects } from '../api/hooks';
@@ -10,19 +10,40 @@ const contextItems = [
   { to: '/settings', icon: Settings,        label: 'Settings', end: false },
 ];
 
-const sectionTabs = [
-  { to: '/requirements', icon: FileText,      label: 'Requirements' },
-  { to: '/blueprints',   icon: GitBranch,     label: 'Blueprints'   },
-  { to: '/work-orders',  icon: ClipboardList, label: 'Work Orders'  },
-  { to: '/tests',        icon: FlaskConical,  label: 'Tests'        },
-  { to: '/feedback',     icon: MessageSquare, label: 'Feedback'     },
-  { to: '/audit',        icon: Shield,        label: 'Audit'        },
-  { to: '/graph',        icon: Network,       label: 'Graph'        },
-  { to: '/models',       icon: Cpu,           label: 'Models'       },
-  { to: '/tokens',       icon: Zap,           label: 'Tokens'       },
+const SECTION_DEFS = [
+  { key: 'requirements', icon: FileText,      label: 'Requirements' },
+  { key: 'blueprints',   icon: GitBranch,     label: 'Blueprints'   },
+  { key: 'work-orders',  icon: ClipboardList, label: 'Work Orders'  },
+  { key: 'tests',        icon: FlaskConical,  label: 'Tests'        },
+  { key: 'feedback',     icon: MessageSquare, label: 'Feedback'     },
+  { key: 'audit',        icon: Shield,        label: 'Audit'        },
+  { key: 'graph',        icon: Network,       label: 'Graph'        },
+  { key: 'models',       icon: Cpu,           label: 'Models'       },
+  { key: 'tokens',       icon: Zap,           label: 'Tokens'       },
 ];
 
-function NavItem({ to, icon: Icon, label, end }) {
+// Sections that are NOT project-scoped
+const GLOBAL_SECTIONS = new Set(['audit', 'models', 'tokens']);
+
+function NavItem({ to, icon: Icon, label, end, disabled }) {
+  if (disabled) {
+    return (
+      <div
+        title="Select a project first"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '7px 10px', borderRadius: 7,
+          fontSize: 13, fontWeight: 400,
+          color: 'var(--text-tertiary)',
+          opacity: 0.5, cursor: 'not-allowed',
+          userSelect: 'none',
+        }}
+      >
+        <Icon size={14} strokeWidth={1.6} style={{ flexShrink: 0 }} />
+        <span>{label}</span>
+      </div>
+    );
+  }
   return (
     <NavLink
       to={to}
@@ -50,6 +71,8 @@ export default function Sidebar({ isOpen, onClose }) {
   const [projectOpen, setProjectOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const params = useParams();
   const dropdownRef = useRef(null);
   const isMobile = useMobile();
 
@@ -62,7 +85,38 @@ export default function Sidebar({ isOpen, onClose }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [projectOpen]);
 
+  // Sync selected project from URL param if present
+  useEffect(() => {
+    if (params.projectId && projectList.length > 0) {
+      const found = projectList.find((p) => (p.id || p.project_id) === params.projectId);
+      if (found) setSelectedProject(found);
+    }
+  }, [params.projectId, projectList]);
+
   const currentProject = selectedProject || projectList[0];
+  const currentProjectId = currentProject?.id || currentProject?.project_id;
+
+  const handleProjectSelect = (p) => {
+    setSelectedProject(p);
+    setProjectOpen(false);
+    const pid = p.id || p.project_id;
+    // Navigate to same section in new project context if we're on a project-scoped route
+    const match = location.pathname.match(/^\/project\/[^/]+\/(.+)/);
+    if (match) {
+      navigate(`/project/${pid}/${match[1]}`);
+    }
+  };
+
+  // Build nav items with project-aware paths
+  const sectionItems = SECTION_DEFS.map(({ key, icon, label }) => {
+    if (GLOBAL_SECTIONS.has(key)) {
+      return { to: `/${key}`, icon, label, disabled: false };
+    }
+    if (currentProjectId) {
+      return { to: `/project/${currentProjectId}/${key}`, icon, label, disabled: false };
+    }
+    return { to: `/${key}`, icon, label, disabled: true };
+  });
 
   const sidebarStyle = isMobile
     ? {
@@ -176,11 +230,11 @@ export default function Sidebar({ isOpen, onClose }) {
                 {projectList.map((p) => (
                   <button
                     key={p.id || p.project_id}
-                    onClick={() => { setSelectedProject(p); setProjectOpen(false); }}
+                    onClick={() => handleProjectSelect(p)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       width: '100%', padding: '9px 12px',
-                      background: (currentProject?.id || currentProject?.project_id) === (p.id || p.project_id) ? 'var(--accent-bg)' : 'transparent',
+                      background: currentProjectId === (p.id || p.project_id) ? 'var(--accent-bg)' : 'transparent',
                       border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                       transition: 'background 0.1s', textAlign: 'left',
                     }}
@@ -196,13 +250,13 @@ export default function Sidebar({ isOpen, onClose }) {
           </AnimatePresence>
         </div>
 
-        {/* Section tabs  mobile only */}
+        {/* Section tabs — mobile only */}
         {isMobile && (
           <div style={{ padding: '8px 8px 0', borderBottom: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 10px 4px' }}>Sections</div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 1, paddingBottom: 8 }}>
-              {sectionTabs.map(({ to, icon, label }) => (
-                <NavItem key={to} to={to} icon={icon} label={label} end={false} />
+              {sectionItems.map(({ to, icon, label, disabled }) => (
+                <NavItem key={label} to={to} icon={icon} label={label} end={false} disabled={disabled} />
               ))}
             </nav>
           </div>
@@ -211,7 +265,14 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Context nav */}
         <nav style={{ flex: 1, padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 1 }}>
           {!isMobile && (
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '2px 10px 6px' }}>Context</div>
+            <>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '2px 10px 6px' }}>Sections</div>
+              {sectionItems.map(({ to, icon, label, disabled }) => (
+                <NavItem key={label} to={to} icon={icon} label={label} end={false} disabled={disabled} />
+              ))}
+              <div style={{ height: 1, background: 'var(--border)', margin: '8px 10px' }} />
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '2px 10px 6px' }}>App</div>
+            </>
           )}
           {contextItems.map(({ to, icon, label, end }) => (
             <NavItem key={to} to={to} icon={icon} label={label} end={end} />

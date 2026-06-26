@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MessageSquare, Sparkles, Send, ChevronDown } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
@@ -16,7 +17,9 @@ const SOURCE_COLORS = {
 };
 
 export default function FeedbackPage() {
-  const [projectId, setProjectId] = useState('');
+  const { projectId: urlProjectId } = useParams();
+  const [localProjectId, setLocalProjectId] = useState('');
+  const projectId = urlProjectId || localProjectId;
   const [createOpen, setCreateOpen] = useState(false);
   const [source, setSource]   = useState('user');
   const [content, setContent] = useState('');
@@ -44,13 +47,15 @@ export default function FeedbackPage() {
           <p className="page-subtitle">User signals and parsed insights</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div style={{ position: 'relative' }}>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="input-base" style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}>
-              <option value="">Select project…</option>
-              {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
-            </select>
-            <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          </div>
+          {!urlProjectId && (
+            <div style={{ position: 'relative' }}>
+              <select value={localProjectId} onChange={(e) => setLocalProjectId(e.target.value)} className="input-base" style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}>
+                <option value="">Select project…</option>
+                {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
+              </select>
+              <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+            </div>
+          )}
           <button onClick={() => projectId && parseFb.mutate({ projectId })} disabled={!projectId || parseFb.isPending} className="btn-ai">
             <Sparkles size={13} strokeWidth={1.5} /> {parseFb.isPending ? 'Parsing…' : 'AI Parse'}
           </button>
