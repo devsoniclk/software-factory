@@ -1,5 +1,6 @@
 use std::process::{Child, Command};
 use std::sync::Mutex;
+use tauri::Manager;
 
 pub struct SidecarState {
     backend: Mutex<Option<Child>>,
@@ -17,7 +18,6 @@ fn find_executable(candidates: &[&str]) -> Option<String> {
 
 fn start_python_backend() -> Option<Child> {
     let python = find_executable(&["python3", "python"])?;
-    // Run from the directory containing the binary (or cwd in dev)
     let cwd = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
@@ -42,7 +42,6 @@ fn start_ollama() -> Option<Child> {
         "/usr/local/bin/ollama",
         "ollama",
     ])?;
-    // Try to detect if already running by checking port 11434
     if std::net::TcpStream::connect("127.0.0.1:11434").is_ok() {
         return None; // already running
     }
@@ -65,6 +64,24 @@ fn get_system_info() -> serde_json::Value {
     })
 }
 
+#[tauri::command]
+async fn check_for_updates(app: tauri::AppHandle) -> serde_json::Value {
+    use tauri_plugin_updater::UpdaterExt;
+    match app.updater() {
+        Ok(updater) => match updater.check().await {
+            Ok(Some(update)) => serde_json::json!({
+                "available": true,
+                "version": update.version,
+                "notes": update.body.unwrap_or_default(),
+                "date": update.date.map(|d| d.to_string()).unwrap_or_default(),
+            }),
+            Ok(None) => serde_json::json!({ "available": false }),
+            Err(e) => serde_json::json!({ "error": e.to_string() }),
+        },
+        Err(e) => serde_json::json!({ "error": e.to_string() }),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -72,6 +89,9 @@ pub fn run() {
             backend: Mutex::new(None),
             ollama: Mutex::new(None),
         })
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -81,13 +101,10 @@ pub fn run() {
                 )?;
             }
 
-            // Auto-launch Python backend
             let state = app.state::<SidecarState>();
             if let Some(child) = start_python_backend() {
                 *state.backend.lock().unwrap() = Some(child);
             }
-
-            // Auto-launch Ollama (best-effort, skip if already running)
             if let Some(child) = start_ollama() {
                 *state.ollama.lock().unwrap() = Some(child);
             }
@@ -97,19 +114,27 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 let state = window.state::<SidecarState>();
-                // Terminate backend on window close
-                if let Some(mut child) = state.backend.lock().unwrap().take() {
-                    let _ = child.kill();
-                    let _ = child.wait();
+                {
+                    let mut backend = state.backend.lock().unwrap();
+                    if let Some(mut child) = backend.take() {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                    }
                 }
-                // Terminate ollama only if we launched it
-                if let Some(mut child) = state.ollama.lock().unwrap().take() {
-                    let _ = child.kill();
-                    let _ = child.wait();
+                {
+                    let mut ollama = state.ollama.lock().unwrap();
+                    if let Some(mut child) = ollama.take() {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                    }
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![get_backend_status, get_system_info])
+        .invoke_handler(tauri::generate_handler![
+            get_backend_status,
+            get_system_info,
+            check_for_updates,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -1,46 +1,56 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "1024 Studio",
-  "version": "0.1.0",
-  "identifier": "ai.studio.1024",
-  "build": {
-    "frontendDist": "../frontend/dist",
-    "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "cd ../frontend && npm run dev",
-    "beforeBuildCommand": "cd ../frontend && npm run build"
-  },
-  "app": {
-    "windows": [
-      {
-        "title": "1024 Studio",
-        "label": "main",
-        "width": 1400,
-        "height": 900,
-        "minWidth": 1000,
-        "minHeight": 600,
-        "resizable": true,
-        "fullscreen": false,
-        "center": true,
-        "decorations": true,
-        "transparent": false
-      }
-    ],
-    "security": {
-      "csp": null
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "1024 Studio",
+    "version": "0.1.0",
+    "identifier": "ai.studio.1024",
+    "build": {
+        "frontendDist": "../frontend/dist",
+        "devUrl": "http://localhost:5173",
+        "beforeDevCommand": "cd ../frontend && npm run dev",
+        "beforeBuildCommand": "cd ../frontend && npm run build"
+    },
+    "app": {
+        "windows": [
+            {
+                "title": "1024 Studio",
+                "label": "main",
+                "width": 1400,
+                "height": 900,
+                "minWidth": 1000,
+                "minHeight": 600,
+                "resizable": true,
+                "fullscreen": false,
+                "center": true,
+                "decorations": true,
+                "transparent": false
+            }
+        ],
+        "security": {
+            "csp": null
+        }
+    },
+    "bundle": {
+        "active": true,
+        "targets": "all",
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/128x128@2x.png",
+            "icons/icon.icns",
+            "icons/icon.ico"
+        ],
+        "category": "DeveloperTool",
+        "shortDescription": "AI-native SDLC platform",
+        "longDescription": "1024 Studio \u2014 Build from the foundation. Free, local, open-source AI-powered software development platform."
+    },
+    "plugins": {
+        "updater": {
+            "pubkey": "",
+            "endpoints": [
+                "https://github.com/devsoniclk/1024-studio/releases/latest/download/latest.json"
+            ],
+            "dialog": true,
+            "active": true
+        }
     }
-  },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "category": "DeveloperTool",
-    "shortDescription": "AI-native SDLC platform",
-    "longDescription": "1024 Studio — Build from the foundation. Free, local, open-source AI-powered software development platform."
-  }
 }

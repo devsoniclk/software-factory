@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Server, Bell, Palette, Shield, ChevronRight, Check, Globe } from 'lucide-react';
+import { Server, Bell, Palette, Shield, ChevronRight, Check, Globe, RefreshCw, Download } from 'lucide-react';
 import { applyTheme, applyAccent } from '../hooks/useTheme';
+import { invoke } from '@tauri-apps/api/core';
+
 
 const stagger = (i) => ({ initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.2, delay: i * 0.04, ease: [0.4, 0, 0.2, 1] } });
 
@@ -98,6 +100,49 @@ function load() {
   catch { return DEFAULT_SETTINGS; }
 }
 
+
+function UpdateChecker() {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const check = async () => {
+    setLoading(true);
+    setStatus(null);
+    try {
+      const result = await invoke('check_for_updates');
+      setStatus(result);
+    } catch (e) {
+      setStatus({ error: String(e) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {status && !loading && (
+        <span style={{
+          fontSize: 12,
+          color: status.error ? 'var(--status-error)' : status.available ? 'var(--accent)' : 'var(--status-success)',
+        }}>
+          {status.error ? status.error : status.available ? `v${status.version} available` : 'Up to date'}
+        </span>
+      )}
+      <button
+        onClick={check}
+        disabled={loading}
+        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'inherit' }}
+      >
+        {loading
+          ? <><RefreshCw size={12} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} /> Checking…</>
+          : <><Download size={12} strokeWidth={1.5} /> Check Now</>
+        }
+      </button>
+      <style>{"@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }"}</style>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('general');
   const [settings, setSettings] = useState(load);
@@ -162,6 +207,15 @@ export default function SettingsPage() {
             </>
           )}
 
+              <p className="section-label" style={{ marginTop: 20 }}>Updates</p>
+              <Card>
+                <SettingRow label="Check for Updates" description="Latest version from GitHub Releases">
+                  <UpdateChecker />
+                </SettingRow>
+                <SettingRow label="Current Version" description="1024 Studio desktop">
+                  <span style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>v0.1.0</span>
+                </SettingRow>
+              </Card>
           {activeSection === 'backend' && (
             <>
               <p className="section-label">Backend Connection</p>
