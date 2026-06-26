@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.models.engine import get_db
-from backend.models.database import WorkOrder, Blueprint, WOStatus, uid, now_iso
+from backend.models.database import WorkOrder, Blueprint, WOStatus, uid, now_iso, current_user
 from backend.models.schemas import WorkOrderCreate, WorkOrderResponse
 from backend.services.audit_service import audit_service
 
@@ -64,7 +64,14 @@ async def update_work_order_status(blueprint_id: str, wo_id: str, body: dict, db
     old_status = wo.status.value if hasattr(wo.status, "value") else wo.status
     allowed = WO_VALID_TRANSITIONS.get(old_status, [])
     if new_status not in allowed:
-        raise HTTPException(status_code=400, detail=f"Cannot transition from '{old_status}' to '{new_status}'. Allowed: {allowed}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": f"Cannot transition from '{old_status}' to '{new_status}'",
+                "allowed": allowed,
+                "current": old_status,
+            },
+        )
     wo.status = WOStatus(new_status)
     await db.commit()
     await db.refresh(wo)

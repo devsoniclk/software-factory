@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from backend.models.engine import get_db
-from backend.models.database import Requirement, Project, ReqStatus, DocumentVersion, uid, now_iso
+from backend.models.database import Requirement, Project, ReqStatus, DocumentVersion, uid, now_iso, current_user
 from backend.models.schemas import RequirementCreate, RequirementResponse
 from backend.services.audit_service import audit_service
 from backend.services.ears import validate_criteria
@@ -58,6 +58,7 @@ async def create_requirement(
         acceptance_criteria_json=json.dumps(criteria),
         ears_warnings_json=json.dumps(ears_warnings),
         ai_generated=body.ai_generated,
+        created_by=current_user(),
     )
     db.add(req)
     await db.commit()
@@ -192,7 +193,11 @@ async def update_status(
     if new_status not in allowed:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot transition from '{old_status}' to '{new_status}'. Allowed: {allowed}",
+            detail={
+                "message": f"Cannot transition from '{old_status}' to '{new_status}'",
+                "allowed": allowed,
+                "current": old_status,
+            },
         )
     req.status = ReqStatus(new_status)
     await db.commit()

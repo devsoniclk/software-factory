@@ -1,5 +1,4 @@
 """Test Cases CRUD router."""
-import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,7 +7,7 @@ from backend.models.database import TestCase, Requirement, TestStatus, uid
 from backend.models.schemas import TestCaseCreate, TestCaseResponse
 from backend.services.audit_service import audit_service
 
-router = APIRouter(prefix="/requirements/{requirement_id}/tests", tags=["tests"])
+router = APIRouter(tags=["tests"])
 
 TEST_VALID_TRANSITIONS = {
     "pending": ["passed", "failed", "skipped"],
@@ -17,8 +16,23 @@ TEST_VALID_TRANSITIONS = {
     "skipped": ["pending"],
 }
 
+# ── Project-scoped endpoint ───────────────────────────────────────────────────
 
-@router.post("", response_model=TestCaseResponse)
+@router.get("/projects/{project_id}/tests", response_model=list[TestCaseResponse])
+async def list_project_tests(project_id: str, db: AsyncSession = Depends(get_db)):
+    """Get all test cases for all requirements in a project."""
+    result = await db.execute(
+        select(TestCase)
+        .join(Requirement, TestCase.requirement_id == Requirement.id)
+        .where(Requirement.project_id == project_id)
+        .order_by(TestCase.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+# ── Requirement-scoped endpoints ──────────────────────────────────────────────
+
+@router.post("/requirements/{requirement_id}/tests", response_model=TestCaseResponse)
 async def create_test_case(requirement_id: str, body: TestCaseCreate, db: AsyncSession = Depends(get_db)):
     req = await db.get(Requirement, requirement_id)
     if not req:
@@ -37,7 +51,7 @@ async def create_test_case(requirement_id: str, body: TestCaseCreate, db: AsyncS
     return tc
 
 
-@router.get("", response_model=list[TestCaseResponse])
+@router.get("/requirements/{requirement_id}/tests", response_model=list[TestCaseResponse])
 async def list_test_cases(requirement_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(TestCase).where(TestCase.requirement_id == requirement_id).order_by(TestCase.created_at.desc())
@@ -45,7 +59,7 @@ async def list_test_cases(requirement_id: str, db: AsyncSession = Depends(get_db
     return result.scalars().all()
 
 
-@router.patch("/{tc_id}/status")
+@router.patch("/requirements/{requirement_id}/tests/{tc_id}/status")
 async def update_test_status(requirement_id: str, tc_id: str, body: dict, db: AsyncSession = Depends(get_db)):
     tc = await db.get(TestCase, tc_id)
     if not tc or tc.requirement_id != requirement_id:
@@ -54,7 +68,14 @@ async def update_test_status(requirement_id: str, tc_id: str, body: dict, db: As
     old_status = tc.status.value if hasattr(tc.status, "value") else tc.status
     allowed = TEST_VALID_TRANSITIONS.get(old_status, [])
     if new_status not in allowed:
-        raise HTTPException(status_code=400, detail=f"Cannot transition from '{old_status}' to '{new_status}'. Allowed: {allowed}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": f"Cannot transition from '{old_status}' to '{new_status}'",
+                "allowed": allowed,
+                "current": old_status,
+            },
+        )
     tc.status = TestStatus(new_status)
     if "result" in body:
         tc.result = body["result"]

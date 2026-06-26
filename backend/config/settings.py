@@ -1,6 +1,20 @@
 """1024 Studio configuration: auto-detects environment."""
 from pathlib import Path
-import os
+import os, secrets
+
+
+def _load_or_create_api_key() -> str:
+    """Load or generate a persistent API key for localhost authentication."""
+    key_path = Path.home() / ".1024Studio" / "api_key.txt"
+    key_path.parent.mkdir(parents=True, exist_ok=True)
+    if key_path.exists():
+        key = key_path.read_text().strip()
+        if len(key) >= 32:
+            return key
+    key = secrets.token_hex(32)
+    key_path.write_text(key)
+    key_path.chmod(0o600)
+    return key
 
 DATA_DIR = Path.home() / "1024Studio"
 DATA_DIR.mkdir(exist_ok=True)
@@ -70,6 +84,7 @@ _ALLOWED_BASE_URLS.add("http://localhost:11434/v1")
 
 class Settings:
     def __init__(self):
+        self.api_key          = _load_or_create_api_key()
         self.db_path          = str(DATA_DIR / "data.db")
         self.data_dir         = DATA_DIR
         self.active_provider  = "ollama"
