@@ -213,7 +213,7 @@ export default function SettingsPage() {
                   <UpdateChecker />
                 </SettingRow>
                 <SettingRow label="Current Version" description="1024 Studio desktop">
-                  <span style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>v0.1.0</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>v0.2.0</span>
                 </SettingRow>
               </Card>
           {activeSection === 'backend' && (
