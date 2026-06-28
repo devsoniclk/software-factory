@@ -13,10 +13,10 @@ from backend.services.audit_service import audit_service
 router = APIRouter(prefix="/blueprints/{blueprint_id}/work-orders", tags=["work_orders"])
 
 WO_VALID_TRANSITIONS = {
-    "pending": ["in_progress"],
+    "pending":     ["in_progress"],
     "in_progress": ["completed", "blocked"],
-    "blocked": ["in_progress"],
-    "completed": [],
+    "blocked":     ["in_progress"],
+    "completed":   ["in_progress"],  # allow reopen
 }
 
 

@@ -245,11 +245,19 @@ async def export_git_init(project_id: str, db: AsyncSession = Depends(get_db)):
     def run(*args):
         return subprocess.run([*git, *args], capture_output=True, text=True)
 
+    # Resolve the user's real git identity, falling back to system username
+    def _git_global(key: str) -> str:
+        r = subprocess.run(["git", "config", "--global", key], capture_output=True, text=True)
+        return r.stdout.strip()
+
+    git_email = _git_global("user.email") or f"{os.environ.get('USER', 'user')}@localhost"
+    git_name  = _git_global("user.name")  or os.environ.get("USER", "1024 Studio")
+
     # Init repo if needed
     if not (export_dir / ".git").exists():
         run("init")
-        run("config", "user.email", "studio@1024.local")
-        run("config", "user.name", "1024 Studio")
+        run("config", "user.email", git_email)
+        run("config", "user.name", git_name)
 
     run("add", "README.md")
     result = run("commit", "-m", f"Export: {project.name}")

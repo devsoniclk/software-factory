@@ -101,9 +101,19 @@ function load() {
 }
 
 
+const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
+
 function UpdateChecker() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  if (!isTauri) {
+    return (
+      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+        Update checking is only available in the desktop app.
+      </span>
+    );
+  }
 
   const check = async () => {
     setLoading(true);

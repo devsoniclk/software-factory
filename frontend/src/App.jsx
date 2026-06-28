@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -15,10 +15,7 @@ import AuditPage from './pages/AuditPage';
 import ModelManagerPage from './pages/ModelManagerPage';
 import SettingsPage from './pages/SettingsPage';
 import TokenUsagePage from './pages/TokenUsagePage';
-import TraceabilityPage from './pages/TraceabilityPage';
 import TemplatesPage from './pages/TemplatesPage';
-import ERDiagramPage from './pages/ERDiagramPage';
-import AnalyticsPage from './pages/AnalyticsPage';
 import PluginsPage from './pages/PluginsPage';
 import { useTheme } from './hooks/useTheme';
 import { useProjects } from './api/hooks';

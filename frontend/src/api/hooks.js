@@ -387,3 +387,83 @@ export function useRedeemReferral() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['referral-stats'] }),
   });
 }
+
+/* ─── Git Export ─── */
+export function useGitExport() {
+  return useMutation({
+    mutationFn: (projectId) => client.post(`/export/project/${projectId}/git-init`).then((r) => r.data),
+  });
+}
+
+/* ─── Templates ─── */
+export function useTemplates() {
+  return useQuery({
+    queryKey: ['templates'],
+    queryFn: () => client.get('/templates').then((r) => r.data),
+  });
+}
+
+export function useTemplate(templateId) {
+  return useQuery({
+    queryKey: ['template', templateId],
+    queryFn: () => client.get(`/templates/${templateId}`).then((r) => r.data),
+    enabled: !!templateId,
+  });
+}
+
+export function useApplyTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ templateId, project_name, project_description }) =>
+      client.post(`/templates/${templateId}/apply`, { project_name, project_description }).then((r) => r.data),
+    onSuccess: (_, { projectId }) => {
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      if (projectId) {
+        qc.invalidateQueries({ queryKey: ['requirements', projectId] });
+        qc.invalidateQueries({ queryKey: ['blueprints', projectId] });
+      }
+    },
+  });
+}
+
+/* ─── Traceability ─── */
+export function useTraceability(projectId) {
+  return useQuery({
+    queryKey: ['traceability', projectId],
+    queryFn: () => client.get(`/projects/${projectId}/traceability`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useGaps(projectId) {
+  return useQuery({
+    queryKey: ['gaps', projectId],
+    queryFn: () => client.get(`/projects/${projectId}/gaps`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+/* ─── ER Diagram ─── */
+export function useERDiagram(projectId) {
+  return useQuery({
+    queryKey: ['er-diagram', projectId],
+    queryFn: () => client.get(`/er-diagram/project/${projectId}`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useBlueprintERDiagram(blueprintId) {
+  return useQuery({
+    queryKey: ['er-diagram-bp', blueprintId],
+    queryFn: () => client.get(`/er-diagram/blueprint/${blueprintId}`).then((r) => r.data),
+    enabled: !!blueprintId,
+  });
+}
+
+/* ─── Analytics ─── */
+export function useGlobalSummary() {
+  return useQuery({
+    queryKey: ['analytics-summary'],
+    queryFn: () => client.get('/analytics/summary').then((r) => r.data),
+  });
+}

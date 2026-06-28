@@ -25,19 +25,41 @@ async def _apply_pragmas(conn):
 
 async def _migrate(conn):
     """Run additive ALTER TABLE migrations; log unexpected errors."""
-    import logging
+    import logging, re as _re
     log = logging.getLogger(__name__)
-    migrations = [
+    additive = [
         "ALTER TABLE blueprints ADD COLUMN wo_counter INTEGER DEFAULT 0",
         "ALTER TABLE work_orders ADD COLUMN wo_id TEXT DEFAULT ''",
     ]
-    for sql in migrations:
+    for sql in additive:
         try:
             await conn.execute(text(sql))
         except Exception as e:
             msg = str(e).lower()
             if "duplicate column" not in msg and "already exists" not in msg:
                 log.warning("Migration skipped (%s): %s", sql[:60], e)
+
+    # Backfill wo_id for existing work orders created before the WO-ID feature.
+    try:
+        rows = (await conn.execute(text(
+            "SELECT wo.id, wo.blueprint_id,"
+            " ROW_NUMBER() OVER (PARTITION BY wo.blueprint_id ORDER BY wo.created_at) AS rn,"
+            " bp.name AS bp_name"
+            " FROM work_orders wo JOIN blueprints bp ON wo.blueprint_id = bp.id"
+            " WHERE wo.wo_id IS NULL OR wo.wo_id = ''"
+        ))).fetchall()
+        for row in rows:
+            letters = _re.sub(r"[^a-zA-Z]", "", row[3] or "").upper()
+            prefix = letters[:4] if letters else "WRK"
+            wo_id = f"WO-{prefix}-{int(row[2]):03d}"
+            await conn.execute(
+                text("UPDATE work_orders SET wo_id = :wid WHERE id = :id"),
+                {"wid": wo_id, "id": row[0]}
+            )
+        if rows:
+            log.info("Backfilled wo_id for %d work orders", len(rows))
+    except Exception as e:
+        log.warning("wo_id backfill skipped: %s", e)
 
 
 async def init_db():
