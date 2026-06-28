@@ -19,6 +19,9 @@ import TemplatesPage from './pages/TemplatesPage';
 import PluginsPage from './pages/PluginsPage';
 import CodeIndexPage from './pages/CodeIndexPage';
 import DriftPage from './pages/DriftPage';
+import SimulatorPage from './pages/SimulatorPage';
+import QAFlowsPage from './pages/QAFlowsPage';
+import LiveAssistancePage from './pages/LiveAssistancePage';
 import { useTheme } from './hooks/useTheme';
 import { useProjects } from './api/hooks';
 import FirstLaunchWizard from './components/FirstLaunchWizard';
@@ -84,6 +87,12 @@ function AppRoutes() {
           <Route path="/project/:projectId/code-index" element={<CodeIndexPage />} />
           <Route path="/drift" element={<DriftPage />} />
           <Route path="/project/:projectId/drift" element={<DriftPage />} />
+          <Route path="/simulator" element={<SimulatorPage />} />
+          <Route path="/project/:projectId/simulator" element={<SimulatorPage />} />
+          <Route path="/qa-flows" element={<QAFlowsPage />} />
+          <Route path="/project/:projectId/qa-flows" element={<QAFlowsPage />} />
+          <Route path="/live-assist" element={<LiveAssistancePage />} />
+          <Route path="/project/:projectId/live-assist" element={<LiveAssistancePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -112,3 +112,10 @@ from backend.api.mcp_server import router as mcp_router
 app.include_router(code_index_router)
 app.include_router(drift_router)
 app.include_router(mcp_router)
+
+from backend.api.simulator import router as simulator_router
+from backend.api.qa_flows import router as qa_flows_router
+from backend.api.live_assist import router as live_assist_router
+app.include_router(simulator_router)
+app.include_router(qa_flows_router)
+app.include_router(live_assist_router)

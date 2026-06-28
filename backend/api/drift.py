@@ -72,3 +72,67 @@ async def clear_resolved_alerts(project_id: str, db: AsyncSession = Depends(get_
     await db.execute(delete(DriftAlert).where(DriftAlert.project_id == project_id, DriftAlert.status == "resolved"))
     await db.commit()
     return {"cleared": True}
+
+
+@router.post("/project/{project_id}/runtime-scan")
+async def runtime_drift_scan(
+    project_id: str,
+    simulator_run_id: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Detect runtime drift by comparing simulator screens against blueprint components."""
+    import re as _re
+    from sqlalchemy import delete as _delete
+    from backend.models.database import SimulatorRun, SimulatorScreen
+
+    run = await db.get(SimulatorRun, simulator_run_id)
+    if not run or run.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Simulator run not found")
+
+    screen_result = await db.execute(
+        select(SimulatorScreen).where(SimulatorScreen.run_id == simulator_run_id)
+    )
+    screens = screen_result.scalars().all()
+    all_routes = {s.route.lower() for s in screens}
+    all_titles = {(s.title or "").lower() for s in screens}
+
+    from backend.models.database import Blueprint
+    bp_result = await db.execute(select(Blueprint).where(Blueprint.project_id == project_id))
+    blueprints = bp_result.scalars().all()
+
+    await db.execute(
+        _delete(DriftAlert).where(
+            DriftAlert.project_id == project_id,
+            DriftAlert.alert_type == "missing_screen",
+        )
+    )
+
+    new_alerts = []
+    for bp in blueprints:
+        dsl = bp.dsl_content or ""
+        component_names = _re.findall(r'^component\s+(\S+)', dsl, _re.MULTILINE)
+        for comp in component_names:
+            comp_lower = comp.lower()
+            route_match = any(comp_lower in r or r in comp_lower for r in all_routes)
+            title_match = any(comp_lower in t or t in comp_lower for t in all_titles if t)
+            if not route_match and not title_match:
+                alert = DriftAlert(
+                    id=uid(), project_id=project_id, blueprint_id=bp.id,
+                    alert_type="missing_screen", severity="warning",
+                    title=f"No screen found for component `{comp}`",
+                    description=f"Blueprint '{bp.name}' defines component `{comp}` but no simulator screen matches.",
+                    blueprint_reference=f"component {comp} in {bp.name}",
+                    code_reality=f"({len(screens)} screens crawled, none match)",
+                )
+                db.add(alert)
+                new_alerts.append({"component": comp, "blueprint": bp.name})
+
+    await db.commit()
+    return {
+        "project_id": project_id,
+        "simulator_run_id": simulator_run_id,
+        "screens_checked": len(screens),
+        "blueprints_checked": len(blueprints),
+        "new_alerts": len(new_alerts),
+        "alerts": new_alerts,
+    }

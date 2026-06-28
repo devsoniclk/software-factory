@@ -364,3 +364,88 @@ class DriftAlert(Base):
     resolved_at = Column(String, nullable=True)
     project = relationship("Project", foreign_keys=[project_id])
     blueprint = relationship("Blueprint", foreign_keys=[blueprint_id])
+
+
+class SimulatorRun(Base):
+    """A crawl session that explores a live web app to build a spatial map."""
+    __tablename__ = "simulator_runs"
+    __table_args__ = (
+        Index("ix_simulator_runs_project_id", "project_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    target_url = Column(String(2000), nullable=False)
+    status = Column(String(50), default="pending")   # pending | running | done | error
+    screen_count = Column(Integer, default=0)
+    max_depth = Column(Integer, default=2)
+    error_message = Column(Text, default="")
+    started_at = Column(String, nullable=True)
+    completed_at = Column(String, nullable=True)
+    created_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])
+    screens = relationship("SimulatorScreen", cascade="all,delete-orphan", back_populates="run")
+
+
+class SimulatorScreen(Base):
+    """A single captured screen/route from a simulator crawl."""
+    __tablename__ = "simulator_screens"
+    __table_args__ = (
+        Index("ix_simulator_screens_run_id", "run_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    run_id = Column(String, ForeignKey("simulator_runs.id", ondelete="CASCADE"), nullable=False)
+    route = Column(String(2000), nullable=False)
+    title = Column(String(500), default="")
+    screenshot_b64 = Column(Text, nullable=True)
+    placeholder_svg = Column(Text, nullable=True)
+    selector_count = Column(Integer, default=0)
+    links_json = Column(Text, default="[]")
+    depth = Column(Integer, default=0)
+    crawled_at = Column(String, default=now_iso)
+    run = relationship("SimulatorRun", back_populates="screens")
+
+
+class QAFlow(Base):
+    """A generated Playwright test suite for a blueprint/requirement set."""
+    __tablename__ = "qa_flows"
+    __table_args__ = (
+        Index("ix_qa_flows_project_id", "project_id"),
+        Index("ix_qa_flows_blueprint_id", "blueprint_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    blueprint_id = Column(String, ForeignKey("blueprints.id", ondelete="SET NULL"), nullable=True)
+    name = Column(String(500), nullable=False)
+    description = Column(Text, default="")
+    target_url = Column(String(2000), default="")
+    test_code = Column(Text, default="")
+    status = Column(String(50), default="draft")   # draft | ready | running | passed | failed
+    last_run_at = Column(String, nullable=True)
+    last_run_output = Column(Text, default="")
+    last_run_passed = Column(Integer, default=0)
+    last_run_failed = Column(Integer, default=0)
+    ai_generated = Column(Boolean, default=False)
+    created_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])
+
+
+class FrictionEvent(Base):
+    """A captured user friction event from the embeddable support widget."""
+    __tablename__ = "friction_events"
+    __table_args__ = (
+        Index("ix_friction_events_project_id", "project_id"),
+        Index("ix_friction_events_status", "status"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    session_id = Column(String(100), default="")
+    event_type = Column(String(100), nullable=False)   # "rage_click" | "error" | "long_pause" | "repeated_action" | "feedback"
+    severity = Column(String(20), default="info")      # "info" | "warning" | "critical"
+    page_url = Column(String(2000), default="")
+    element_selector = Column(String(500), default="")
+    message = Column(Text, default="")
+    metadata_json = Column(Text, default="{}")
+    status = Column(String(50), default="open")        # "open" | "promoted" | "dismissed"
+    promoted_wo_id = Column(String, nullable=True)
+    created_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])

@@ -582,3 +582,95 @@ export function useResolveAlert() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['drift'] }),
   });
 }
+
+/* ─── Simulator ─── */
+export function useSimulatorRuns(projectId) {
+  return useQuery({
+    queryKey: ['simulator-runs', projectId],
+    queryFn: () => client.get(`/simulator/project/${projectId}/runs`).then(r => r.data),
+    enabled: !!projectId,
+  });
+}
+export function useSimulatorScreens(runId) {
+  return useQuery({
+    queryKey: ['simulator-screens', runId],
+    queryFn: () => client.get(`/simulator/runs/${runId}/screens`).then(r => r.data),
+    enabled: !!runId,
+  });
+}
+export function useCreateSimulatorRun(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => client.post(`/simulator/project/${projectId}/runs`, body).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['simulator-runs', projectId] }),
+  });
+}
+export function useDeleteSimulatorRun(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (runId) => client.delete(`/simulator/runs/${runId}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['simulator-runs', projectId] }),
+  });
+}
+
+/* ─── QA Flows ─── */
+export function useQAFlows(projectId) {
+  return useQuery({
+    queryKey: ['qa-flows', projectId],
+    queryFn: () => client.get(`/qa-flows/project/${projectId}`).then(r => r.data),
+    enabled: !!projectId,
+  });
+}
+export function useGenerateQAFlow(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => client.post(`/qa-flows/project/${projectId}/generate`, body).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['qa-flows', projectId] }),
+  });
+}
+export function useRunQAFlow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (flowId) => client.post(`/qa-flows/${flowId}/run`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['qa-flows'] }),
+  });
+}
+export function useDeleteQAFlow(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (flowId) => client.delete(`/qa-flows/${flowId}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['qa-flows', projectId] }),
+  });
+}
+
+/* ─── Live Assistance ─── */
+export function useFrictionEvents(projectId, status) {
+  return useQuery({
+    queryKey: ['friction-events', projectId, status],
+    queryFn: () => client.get(`/live-assist/project/${projectId}/events`, { params: { status } }).then(r => r.data),
+    enabled: !!projectId,
+    refetchInterval: 15000,
+  });
+}
+export function useDismissEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (eventId) => client.patch(`/live-assist/events/${eventId}/dismiss`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['friction-events'] }),
+  });
+}
+export function usePromoteEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, blueprint_id, title }) =>
+      client.post(`/live-assist/events/${eventId}/promote`, { blueprint_id, title }).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['friction-events'] }),
+  });
+}
+export function useWidgetSnippet(projectId) {
+  return useQuery({
+    queryKey: ['widget-snippet', projectId],
+    queryFn: () => client.get(`/live-assist/project/${projectId}/widget-snippet`).then(r => r.data),
+    enabled: !!projectId,
+  });
+}
