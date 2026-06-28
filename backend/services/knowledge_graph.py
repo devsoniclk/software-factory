@@ -1,4 +1,5 @@
 """SQLite-based knowledge graph using KGNode / KGEdge models."""
+from __future__ import annotations
 import json
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession

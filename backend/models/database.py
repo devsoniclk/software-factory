@@ -1,5 +1,5 @@
 """All SQLAlchemy models for 1024 Studio."""
-import enum, uuid, json
+import enum, uuid, json, os
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, Integer, Float, Boolean, ForeignKey, Enum as SAEnum, Index
 from sqlalchemy.orm import relationship
@@ -11,6 +11,10 @@ def uid() -> str:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+def current_user() -> str:
+    """Return the OS username for local desktop attribution."""
+    return os.environ.get("USER", os.environ.get("USERNAME", "local"))
 
 
 class ReqStatus(str, enum.Enum):
@@ -254,6 +258,21 @@ class DocumentVersion(Base):
     summary = Column(String(500), default="")           # short change description
     created_by = Column(String(100), default="user")
     created_at = Column(String, default=now_iso)
+
+
+class Plugin(Base):
+    """Persisted plugin registry — both built-in and user-installed plugins."""
+    __tablename__ = "plugins"
+    id = Column(String(100), primary_key=True)
+    name = Column(String(200), default="")
+    description = Column(String(2000), default="")
+    version = Column(String(50), default="1.0.0")
+    author = Column(String(200), default="")
+    endpoint = Column(String(500), nullable=True)
+    category = Column(String(100), default="custom")
+    enabled = Column(Boolean, default=True)
+    builtin = Column(Boolean, default=False)
+    created_at = Column(String(30), default=now_iso)
 
 
 class TokenUsageLog(Base):

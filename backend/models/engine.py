@@ -24,7 +24,9 @@ async def _apply_pragmas(conn):
 
 
 async def _migrate(conn):
-    """Apply additive schema migrations (safe to run on every startup)."""
+    """Run additive ALTER TABLE migrations; log unexpected errors."""
+    import logging
+    log = logging.getLogger(__name__)
     migrations = [
         "ALTER TABLE blueprints ADD COLUMN wo_counter INTEGER DEFAULT 0",
         "ALTER TABLE work_orders ADD COLUMN wo_id TEXT DEFAULT ''",
@@ -32,8 +34,10 @@ async def _migrate(conn):
     for sql in migrations:
         try:
             await conn.execute(text(sql))
-        except Exception:
-            pass  # column already exists
+        except Exception as e:
+            msg = str(e).lower()
+            if "duplicate column" not in msg and "already exists" not in msg:
+                log.warning("Migration skipped (%s): %s", sql[:60], e)
 
 
 async def init_db():

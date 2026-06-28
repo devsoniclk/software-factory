@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config.settings import settings
 from backend.models.engine import init_db
-from backend.api.middleware import SecurityHeadersMiddleware, RequestSizeLimitMiddleware
+from backend.api.middleware import SecurityHeadersMiddleware, RequestSizeLimitMiddleware, APIKeyAuthMiddleware
 
 
 async def _cache_eviction_loop():
@@ -27,6 +27,8 @@ async def lifespan(app: FastAPI):
     from backend.seeds.templates import seed_templates
     async with AsyncSessionLocal() as db:
         await seed_templates(db)
+        from backend.api.plugins import seed_builtin_plugins
+        await seed_builtin_plugins(db)
 
     # Start background cache eviction
     eviction_task = asyncio.create_task(_cache_eviction_loop())
@@ -52,6 +54,9 @@ app = FastAPI(
 # ── Security headers (innermost — applied to every response) ──────────────────
 app.add_middleware(SecurityHeadersMiddleware)
 
+# ── API key authentication (all non-exempt routes) ────────────────────────────
+app.add_middleware(APIKeyAuthMiddleware, api_key=settings.api_key)
+
 # ── Request body size limit (1 MB; AI endpoints can raise this selectively) ───
 app.add_middleware(RequestSizeLimitMiddleware, max_bytes=2 * 1024 * 1024)
 
@@ -61,7 +66,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins,   # explicit list, no wildcard
     allow_credentials=False,               # credentials don't apply to localhost API
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-API-Key"],
     expose_headers=[],
     max_age=600,
 )
@@ -82,9 +87,6 @@ from backend.api.export import router as export_router
 from backend.api.referrals import router as referrals_router
 from backend.api.token_usage import router as token_usage_router
 from backend.api.versions import router as versions_router
-from backend.api.templates import router as templates_router
-from backend.api.er_diagram import router as er_router
-from backend.api.analytics import router as analytics_router
 from backend.api.plugins import router as plugins_router
 
 app.include_router(health_router)
@@ -102,7 +104,4 @@ app.include_router(export_router)
 app.include_router(referrals_router)
 app.include_router(token_usage_router)
 app.include_router(versions_router)
-app.include_router(templates_router)
-app.include_router(er_router)
-app.include_router(analytics_router)
 app.include_router(plugins_router)

@@ -66,7 +66,7 @@ async def ai_generate_requirements(
         created.append({"id": req.id, "title": req.title, "priority": req.priority})
 
     await db.commit()
-    return {"created": len(created), "requirements": created}
+    return {"project_id": body.project_id, "created": len(created), "requirements": created}
 
 
 @router.post("/generate-blueprint")

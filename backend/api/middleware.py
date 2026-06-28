@@ -1,4 +1,5 @@
 """Security middleware: rate limiting, security headers, request size enforcement."""
+import hmac
 import time
 import logging
 from collections import defaultdict
@@ -81,3 +82,24 @@ class InMemoryRateLimiter:
 # Shared limiter instances — imported and used as FastAPI dependencies
 ai_limiter = InMemoryRateLimiter(max_calls=20, window_seconds=60)   # 20 AI calls/min per IP
 api_limiter = InMemoryRateLimiter(max_calls=200, window_seconds=60)  # 200 CRUD calls/min per IP
+
+
+class APIKeyAuthMiddleware(BaseHTTPMiddleware):
+    """Require X-API-Key header on all non-exempt, non-OPTIONS requests."""
+
+    EXEMPT_PATHS = {"/health", "/health/api-key", "/docs", "/openapi.json", "/redoc"}
+
+    def __init__(self, app, api_key: str):
+        super().__init__(app)
+        self.api_key = api_key
+
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        if request.url.path in self.EXEMPT_PATHS:
+            return await call_next(request)
+        client_key = request.headers.get("X-API-Key", "")
+        # Constant-time comparison to prevent timing attacks
+        if not hmac.compare_digest(client_key.encode(), self.api_key.encode()):
+            return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+        return await call_next(request)
