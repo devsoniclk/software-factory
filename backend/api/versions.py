@@ -1,5 +1,6 @@
 """Document version history API."""
 import json
+import difflib
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -63,6 +64,65 @@ async def list_versions(
         }
         for r in rows
     ]
+
+
+@router.get("/{entity_type}/{entity_id}/diff")
+async def diff_versions(
+    entity_type: str,
+    entity_id: str,
+    v1: int = Query(..., description="First version number"),
+    v2: int = Query(..., description="Second version number"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return a structured field-level diff between two versions."""
+
+    async def _fetch(version_number: int):
+        result = await db.execute(
+            select(DocumentVersion).where(
+                DocumentVersion.entity_type == entity_type,
+                DocumentVersion.entity_id == entity_id,
+                DocumentVersion.version_number == version_number,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    row1 = await _fetch(v1)
+    row2 = await _fetch(v2)
+
+    if not row1:
+        raise HTTPException(status_code=404, detail=f"Version {v1} not found")
+    if not row2:
+        raise HTTPException(status_code=404, detail=f"Version {v2} not found")
+
+    content1 = json.loads(row1.content_json) if row1.content_json else {}
+    content2 = json.loads(row2.content_json) if row2.content_json else {}
+
+    all_keys = sorted(set(list(content1.keys()) + list(content2.keys())))
+    fields = []
+    for key in all_keys:
+        before = content1.get(key)
+        after = content2.get(key)
+        changed = before != after
+        entry = {"field": key, "before": before, "after": after, "changed": changed}
+        if isinstance(before, str) or isinstance(after, str):
+            before_str = str(before) if before is not None else ""
+            after_str = str(after) if after is not None else ""
+            before_lines = before_str.splitlines(keepends=True)
+            after_lines = after_str.splitlines(keepends=True)
+            lines_diff = []
+            for line in difflib.unified_diff(before_lines, after_lines, lineterm=""):
+                if line.startswith("+++") or line.startswith("---") or line.startswith("@@"):
+                    continue
+                if line.startswith("+"):
+                    lines_diff.append({"type": "added", "text": line[1:]})
+                elif line.startswith("-"):
+                    lines_diff.append({"type": "removed", "text": line[1:]})
+                else:
+                    lines_diff.append({"type": "unchanged", "text": line[1:]})
+            entry["lines_diff"] = lines_diff
+        fields.append(entry)
+
+    return {"v1": v1, "v2": v2, "fields": fields}
 
 
 @router.get("/{entity_type}/{entity_id}/{version_number}")

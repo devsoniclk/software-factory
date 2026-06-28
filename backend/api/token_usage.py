@@ -1,6 +1,9 @@
 """Token usage and cache analytics endpoints."""
+import csv
+import io
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 from backend.models.engine import get_db
@@ -152,6 +155,69 @@ async def recent_calls(
         }
         for r in rows
     ]}
+
+
+@router.get("/by-project")
+async def usage_by_project(
+    days: int = Query(30, ge=1, le=90),
+    db: AsyncSession = Depends(get_db),
+):
+    """Per-project token usage breakdown (grouped by agent_type, as TokenUsageLog has no project_id)."""
+    result = await db.execute(
+        select(
+            TokenUsageLog.agent_type,
+            func.count(TokenUsageLog.id).label("calls"),
+            func.sum(TokenUsageLog.total_tokens).label("total_tokens"),
+            func.sum(TokenUsageLog.tokens_saved).label("tokens_saved"),
+        )
+        .where(TokenUsageLog.timestamp >= func.date("now", f"-{days} days"))
+        .group_by(TokenUsageLog.agent_type)
+        .order_by(func.sum(TokenUsageLog.total_tokens).desc())
+    )
+    rows = result.mappings().all()
+    return {
+        "rows": [
+            {
+                "project_id": None,
+                "project_name": r["agent_type"] or "default",
+                "calls": r["calls"],
+                "total_tokens": r["total_tokens"] or 0,
+                "tokens_saved": r["tokens_saved"] or 0,
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.get("/export-csv")
+async def export_csv(db: AsyncSession = Depends(get_db)):
+    """Export all token usage records as CSV."""
+    result = await db.execute(
+        select(TokenUsageLog).order_by(TokenUsageLog.timestamp.desc())
+    )
+    rows = result.scalars().all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    headers = [
+        "id", "session_id", "provider", "model", "agent_type",
+        "prompt_tokens", "completion_tokens", "total_tokens",
+        "tokens_saved", "cache_hit", "timestamp",
+    ]
+    writer.writerow(headers)
+    for r in rows:
+        writer.writerow([
+            r.id, r.session_id, r.provider, r.model, r.agent_type,
+            r.prompt_tokens, r.completion_tokens, r.total_tokens,
+            r.tokens_saved, r.cache_hit, r.timestamp,
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=token_usage.csv"},
+    )
 
 
 @router.get("/summary")

@@ -1,18 +1,15 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Sparkles, Layers, Box, ShieldAlert, ChevronDown, Code2, Eye, History, Edit2, Network, BookOpen, AlertOctagon } from 'lucide-react';
+import { Plus, Sparkles, Layers, Box, ShieldAlert, ChevronDown, Code2, Eye, History, Edit2, Network, BookOpen, AlertOctagon, GitBranch, Copy, Check } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import MarkdownEditor from '../components/MarkdownEditor';
-import DiffViewer from '../components/DiffViewer';
-import AIReviewModal from '../components/AIReviewModal';
 import { StatusBadge, AIBadge } from '../components/Badge';
 import {
   useProjects, useBlueprints, useCreateBlueprint, useUpdateBlueprint,
-  useGenerateBlueprint, useParsedBlueprint, useVersionHistory, useVersionContent,
+  useGenerateBlueprint, useParsedBlueprint, useVersionHistory, useBlueprintMermaid,
 } from '../api/hooks';
+import client from '../api/client';
 
 const stagger = (i) => ({
   initial: { opacity: 0, y: 6 },
@@ -126,63 +123,21 @@ function ParsedView({ projectId, bpId }) {
 
 function VersionHistoryPanel({ bpId }) {
   const { data: versions, isLoading } = useVersionHistory('blueprint', bpId);
-  const [selectedVer, setSelectedVer] = useState(null);
-  const [showDiff, setShowDiff] = useState(false);
-  const { data: vContent } = useVersionContent('blueprint', bpId, selectedVer);
-  const { data: prevVContent } = useVersionContent('blueprint', bpId, selectedVer > 1 ? selectedVer - 1 : null);
-
   if (isLoading) return <div className="skeleton" style={{ height: 80 }} />;
   if (!versions?.length) return <p style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>No versions yet.</p>;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {versions.map((v) => (
-        <button
-          key={v.id}
-          onClick={() => { setSelectedVer(selectedVer === v.version_number ? null : v.version_number); setShowDiff(false); }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, textAlign: 'left', width: '100%',
-            background: selectedVer === v.version_number ? 'var(--accent-bg)' : 'var(--color-bg-secondary)',
-            border: `1px solid ${selectedVer === v.version_number ? 'var(--accent-border)' : 'var(--border)'}`,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: selectedVer === v.version_number ? 'var(--accent)' : 'var(--color-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: selectedVer === v.version_number ? '#fff' : 'var(--text-tertiary)', flexShrink: 0 }}>
+        <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--color-bg-secondary)', border: '1px solid var(--border)' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--color-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>
             v{v.version_number}
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{v.summary}</div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{new Date(v.created_at).toLocaleString()}</div>
           </div>
-        </button>
-      ))}
-      {selectedVer && vContent && (
-        <div style={{ padding: 12, background: 'var(--color-bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Version {selectedVer}</span>
-            {selectedVer > 1 && (
-              <button onClick={() => setShowDiff((d) => !d)} style={{ fontSize: 11, color: showDiff ? 'var(--accent)' : 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
-                {showDiff ? 'Show content' : `Diff vs v${selectedVer - 1}`}
-              </button>
-            )}
-          </div>
-          {showDiff && prevVContent ? (
-            <DiffViewer
-              oldContent={(prevVContent.content?.description || '') + '\n\n' + (prevVContent.content?.dsl_content || '')}
-              newContent={(vContent.content?.description || '') + '\n\n' + (vContent.content?.dsl_content || '')}
-              oldLabel={`v${selectedVer - 1}`}
-              newLabel={`v${selectedVer}`}
-            />
-          ) : (
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>{vContent.content?.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{vContent.content?.description}</div>
-              {vContent.content?.dsl_content && (
-                <pre style={{ fontSize: 11, background: 'var(--color-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: 10, overflow: 'auto', maxHeight: 200 }}>{vContent.content.dsl_content}</pre>
-              )}
-            </div>
-          )}
         </div>
-      )}
+      ))}
     </div>
   );
 }
@@ -190,16 +145,38 @@ function VersionHistoryPanel({ bpId }) {
 const BLANK_FORM = { name: '', description: '', dsl_content: '', decisions: '', components: '', constraints: '' };
 
 export default function BlueprintsPage() {
-  const { projectId: urlProjectId } = useParams();
-  const navigate = useNavigate();
-  const [localProjectId, setLocalProjectId] = useState('');
-  const projectId = urlProjectId || localProjectId;
+  const [projectId, setProjectId] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [detailBp, setDetailBp] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [detailTab, setDetailTab] = useState('overview');
   const [form, setForm] = useState(BLANK_FORM);
-  const [aiReviewBp, setAiReviewBp] = useState(null);
+  const [mermaidBp, setMermaidBp] = useState(null);
+  const [mermaidText, setMermaidText] = useState('');
+  const [mermaidLoading, setMermaidLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const fetchMermaid = async (bp, e) => {
+    e.stopPropagation();
+    setMermaidBp(bp);
+    setMermaidText('');
+    setMermaidLoading(true);
+    try {
+      const r = await client.get(`/blueprints/${bp.id || bp.blueprint_id}/mermaid`);
+      setMermaidText(r.data?.mermaid || r.data || '');
+    } catch {
+      setMermaidText('Error loading mermaid diagram.');
+    } finally {
+      setMermaidLoading(false);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(mermaidText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const { data: projects } = useProjects();
   const projectList = Array.isArray(projects) ? projects : projects?.items || projects?.projects || [];
@@ -283,25 +260,15 @@ export default function BlueprintsPage() {
           <p className="page-subtitle">Architecture decisions and component graph</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {!urlProjectId && (
-            <div style={{ position: 'relative' }}>
-              <select value={localProjectId} onChange={(e) => { setLocalProjectId(e.target.value); if (e.target.value) navigate(`/project/${e.target.value}/blueprints`); }} className="input-base" style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}>
-                <option value="">Select project</option>
-                {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
-              </select>
-              <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-            </div>
-          )}
+          <div style={{ position: 'relative' }}>
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="input-base" style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}>
+              <option value="">Select project</option>
+              {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
+            </select>
+            <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+          </div>
           <button
-            onClick={() => projectId && genBp.mutate(
-              { projectId },
-              {
-                onSuccess: (data) => {
-                  const items = Array.isArray(data) ? data : (data?.blueprints || data?.items || (data?.id ? [data] : []));
-                  if (items.length > 0) setAiReviewBp(items.map((b, i) => ({ ...b, id: b.id || `ai-bp-${i}` })));
-                },
-              }
-            )}
+            onClick={() => projectId && genBp.mutate({ projectId })}
             disabled={!projectId || genBp.isPending}
             className="btn-ai"
           >
@@ -324,7 +291,7 @@ export default function BlueprintsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {bpList.map((bp, i) => {
-            const parsedNodes = Array.isArray(bp.parsed_nodes) ? bp.parsed_nodes : (bp.parsed_nodes_json ? JSON.parse(bp.parsed_nodes_json) : []);
+            const parsedNodes = JSON.parse(bp.parsed_nodes_json || '[]');
             const nodesByType = parsedNodes.reduce((a, n) => { a[n.type] = (a[n.type] || 0) + 1; return a; }, {});
             return (
               <motion.div key={bp.id} {...stagger(i)}>
@@ -342,6 +309,13 @@ export default function BlueprintsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>v{bp.version}</span>
                       <StatusBadge status="draft" />
+                      <button
+                        onClick={(e) => fetchMermaid(bp, e)}
+                        className="btn-ghost"
+                        style={{ padding: '4px 8px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <GitBranch size={12} strokeWidth={1.5} /> Mermaid
+                      </button>
                     </div>
                   </div>
 
@@ -442,14 +416,21 @@ export default function BlueprintsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Description</label>
-              <MarkdownEditor value={form.description || ''} onChange={(v) => setForm({ ...form, description: v })} rows={3} placeholder="Architectural overview (markdown supported)" />
+              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-base" style={{ resize: 'none' }} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>DSL Content</label>
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Use ## Component:, ## Model:, ## ADR: sections</span>
               </div>
-              <MarkdownEditor value={form.dsl_content || ''} onChange={(v) => setForm({ ...form, dsl_content: v })} rows={14} placeholder={DSL_PLACEHOLDER} />
+              <textarea
+                value={form.dsl_content}
+                onChange={(e) => setForm({ ...form, dsl_content: e.target.value })}
+                rows={14}
+                placeholder={DSL_PLACEHOLDER}
+                className="input-base font-mono"
+                style={{ resize: 'vertical', fontSize: 12, lineHeight: 1.7 }}
+              />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
               <button onClick={() => setEditMode(false)} className="btn-ghost">Cancel</button>
@@ -461,6 +442,26 @@ export default function BlueprintsPage() {
         )}
       </Modal>
 
+      {/* Mermaid modal */}
+      <Modal isOpen={!!mermaidBp} onClose={() => { setMermaidBp(null); setMermaidText(''); setCopied(false); }} title={`Mermaid — ${mermaidBp?.name || ''}`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {mermaidLoading ? (
+            <div className="skeleton" style={{ height: 160 }} />
+          ) : (
+            <pre style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--color-bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, overflowX: 'auto', lineHeight: 1.7, maxHeight: 360, overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+              {mermaidText || 'No diagram available.'}
+            </pre>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button onClick={() => { setMermaidBp(null); setMermaidText(''); setCopied(false); }} className="btn-ghost">Close</button>
+            <button onClick={handleCopy} disabled={!mermaidText || mermaidLoading} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {copied ? <Check size={13} strokeWidth={2} /> : <Copy size={13} strokeWidth={1.5} />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Create modal */}
       <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New Blueprint">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -470,14 +471,21 @@ export default function BlueprintsPage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Description</label>
-            <MarkdownEditor value={form.description || ''} onChange={(v) => setForm({ ...form, description: v })} rows={3} placeholder="Brief architectural overview (markdown supported)" />
+            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Brief architectural overview" className="input-base" style={{ resize: 'none' }} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>DSL Content</label>
               <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Optional, can add later</span>
             </div>
-            <MarkdownEditor value={form.dsl_content || ''} onChange={(v) => setForm({ ...form, dsl_content: v })} rows={8} placeholder={DSL_PLACEHOLDER} />
+            <textarea
+              value={form.dsl_content}
+              onChange={(e) => setForm({ ...form, dsl_content: e.target.value })}
+              rows={8}
+              placeholder={DSL_PLACEHOLDER}
+              className="input-base font-mono"
+              style={{ resize: 'none', fontSize: 12, lineHeight: 1.6 }}
+            />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
             <button onClick={() => setCreateOpen(false)} className="btn-ghost">Cancel</button>
@@ -487,22 +495,6 @@ export default function BlueprintsPage() {
           </div>
         </div>
       </Modal>
-
-      {/* AI Review Modal — shown after blueprint generation */}
-      {aiReviewBp && (
-        <AIReviewModal
-          title="Review AI-Generated Blueprint"
-          items={aiReviewBp}
-          renderItem={(item) => (
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{item.name}</div>
-              {item.bp_id && <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-tertiary)', marginTop: 2 }}>{item.bp_id}</div>}
-            </div>
-          )}
-          onConfirm={() => setAiReviewBp(null)}
-          onCancel={() => setAiReviewBp(null)}
-        />
-      )}
     </div>
   );
 }

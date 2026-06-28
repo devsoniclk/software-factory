@@ -1,12 +1,18 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Sparkles, ListChecks, Code2, ChevronDown } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { StatusBadge, AIBadge } from '../components/Badge';
-import { useBlueprints, useWorkOrders, useCreateWorkOrder, useGenerateWorkOrders, useProjects } from '../api/hooks';
+import { useBlueprints, useWorkOrders, useCreateWorkOrder, useGenerateWorkOrders, useProjects, useUpdateWorkOrderStatus } from '../api/hooks';
+
+const WO_TRANSITIONS = {
+  pending:     ['in_progress'],
+  in_progress: ['completed', 'blocked'],
+  blocked:     ['in_progress'],
+  completed:   ['in_progress'],
+};
 
 const stagger = (i) => ({ initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.2, delay: i * 0.04, ease: [0.4, 0, 0.2, 1] } });
 
@@ -20,11 +26,8 @@ const SelectField = ({ value, onChange, children, disabled }) => (
 );
 
 export default function WorkOrdersPage() {
-  const { projectId: urlProjectId, blueprintId: urlBlueprintId } = useParams();
-  const [localProjectId, setLocalProjectId] = useState('');
-  const [localBlueprintId, setLocalBlueprintId] = useState('');
-  const projectId   = urlProjectId   || localProjectId;
-  const blueprintId = urlBlueprintId || localBlueprintId;
+  const [projectId, setProjectId]   = useState('');
+  const [blueprintId, setBlueprintId] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', files_to_modify: '' });
 
@@ -36,6 +39,7 @@ export default function WorkOrdersPage() {
   const woList = Array.isArray(workOrders) ? workOrders : workOrders?.items || workOrders?.work_orders || [];
   const createWo = useCreateWorkOrder(blueprintId);
   const genWo = useGenerateWorkOrders();
+  const updateStatus = useUpdateWorkOrderStatus(blueprintId);
 
   const handleCreate = () => {
     if (!form.title.trim()) return;
@@ -53,18 +57,14 @@ export default function WorkOrdersPage() {
           <p className="page-subtitle">Atomic implementation tasks</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {!urlProjectId && (
-            <SelectField value={localProjectId} onChange={(e) => { setLocalProjectId(e.target.value); setLocalBlueprintId(''); }}>
-              <option value="">Project…</option>
-              {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
-            </SelectField>
-          )}
-          {!urlBlueprintId && (
-            <SelectField value={localBlueprintId} onChange={(e) => setLocalBlueprintId(e.target.value)} disabled={!projectId}>
-              <option value="">Blueprint…</option>
-              {bpList.map((b) => <option key={b.id || b.blueprint_id} value={b.id || b.blueprint_id}>{b.name}</option>)}
-            </SelectField>
-          )}
+          <SelectField value={projectId} onChange={(e) => { setProjectId(e.target.value); setBlueprintId(''); }}>
+            <option value="">Project…</option>
+            {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
+          </SelectField>
+          <SelectField value={blueprintId} onChange={(e) => setBlueprintId(e.target.value)} disabled={!projectId}>
+            <option value="">Blueprint…</option>
+            {bpList.map((b) => <option key={b.id || b.blueprint_id} value={b.id || b.blueprint_id}>{b.name}</option>)}
+          </SelectField>
           <button onClick={() => blueprintId && genWo.mutate({ blueprintId })} disabled={!blueprintId} className="btn-ai">
             <Sparkles size={13} strokeWidth={1.5} /> AI Generate
           </button>
@@ -88,11 +88,38 @@ export default function WorkOrdersPage() {
             <motion.div key={wo.id || wo.work_order_id} {...stagger(i)}>
               <GlassCard>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    {wo.wo_id && (
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: 'monospace', background: 'var(--color-bg-secondary)', border: '1px solid var(--border)', padding: '1px 6px', borderRadius: 4 }}>
+                        {wo.wo_id}
+                      </span>
+                    )}
                     <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>{wo.title}</span>
                     {wo.ai_generated && <AIBadge />}
                   </div>
-                  <StatusBadge status={wo.status || 'pending'} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <StatusBadge status={wo.status || 'pending'} />
+                    {(WO_TRANSITIONS[wo.status || 'pending'] || []).length > 0 && (
+                      <div style={{ position: 'relative' }}>
+                        <select
+                          defaultValue=""
+                          onChange={(e) => {
+                            if (!e.target.value) return;
+                            updateStatus.mutate({ woId: wo.id || wo.work_order_id, status: e.target.value });
+                            e.target.value = '';
+                          }}
+                          className="input-base"
+                          style={{ fontSize: 12, padding: '3px 24px 3px 8px', appearance: 'none', cursor: 'pointer', height: 'auto' }}
+                        >
+                          <option value="">Move to…</option>
+                          {(WO_TRANSITIONS[wo.status || 'pending'] || []).map((s) => (
+                            <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={11} strokeWidth={1.5} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: wo.ai_output || wo.files_to_modify?.length ? 12 : 0 }}>{wo.description}</p>
                 {wo.ai_output && (

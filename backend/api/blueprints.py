@@ -11,7 +11,6 @@ from backend.models.schemas import BlueprintCreate, BlueprintResponse
 from backend.services.audit_service import audit_service
 from backend.services.blueprint_parser import parse_dsl, sync_to_kg
 from backend.api.versions import snapshot
-from backend.services import doc_store
 
 router = APIRouter(prefix="/projects/{project_id}/blueprints", tags=["blueprints"])
 
@@ -81,10 +80,6 @@ async def create_blueprint(
     )
 
     await audit_service.log_create(db, "blueprint", bp.id, {"bp_id": bp_id, "name": bp.name})
-    try:
-        doc_store.save_blueprint(project_id, bp)
-    except Exception:
-        pass
     return bp
 
 
@@ -161,10 +156,6 @@ async def update_blueprint(
         "name": bp.name,
         "version": bp.version,
     })
-    try:
-        doc_store.save_blueprint(project_id, bp)
-    except Exception:
-        pass
     return bp
 
 
@@ -178,6 +169,106 @@ async def get_parsed_nodes(project_id: str, bp_id: str, db: AsyncSession = Depen
         return {"nodes": [], "edges": [], "unresolved": []}
     parsed = parse_dsl(bp.dsl_content, bp.project_id, bp.id)
     return parsed
+
+
+@router.get("/{bp_id}/mermaid")
+async def get_mermaid(project_id: str, bp_id: str, db: AsyncSession = Depends(get_db)):
+    """Generate a Mermaid classDiagram from the blueprint DSL."""
+    bp = await db.get(Blueprint, bp_id)
+    if not bp or bp.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Blueprint not found")
+
+    dsl = (bp.dsl_content or "").strip()
+    if not dsl:
+        return {"blueprint_id": bp_id, "mermaid": "classDiagram\n  %% No components or models defined"}
+
+    # Parse DSL blocks
+    components = {}  # name -> {"description": str, "depends_on": [str]}
+    models = {}      # name -> {"fields": [str]}
+
+    current_block_type = None
+    current_block_name = None
+    current_attrs = {}
+
+    for raw_line in dsl.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        # Top-level block declarations
+        comp_match = re.match(r'^component\s+(\S+)', line)
+        model_match = re.match(r'^model\s+(\S+)', line)
+        adr_match = re.match(r'^adr\s+', line)
+
+        if comp_match:
+            if current_block_type == "component" and current_block_name:
+                components[current_block_name] = current_attrs
+            elif current_block_type == "model" and current_block_name:
+                models[current_block_name] = current_attrs
+            current_block_type = "component"
+            current_block_name = comp_match.group(1)
+            current_attrs = {"description": "", "depends_on": []}
+        elif model_match:
+            if current_block_type == "component" and current_block_name:
+                components[current_block_name] = current_attrs
+            elif current_block_type == "model" and current_block_name:
+                models[current_block_name] = current_attrs
+            current_block_type = "model"
+            current_block_name = model_match.group(1)
+            current_attrs = {"fields": []}
+        elif adr_match:
+            if current_block_type == "component" and current_block_name:
+                components[current_block_name] = current_attrs
+            elif current_block_type == "model" and current_block_name:
+                models[current_block_name] = current_attrs
+            current_block_type = "adr"
+            current_block_name = None
+            current_attrs = {}
+        elif current_block_type == "component":
+            dep_match = re.match(r'^depends_on\s*:\s*(.+)', line)
+            desc_match = re.match(r'^description\s*:\s*(.+)', line)
+            if dep_match:
+                deps = [d.strip() for d in dep_match.group(1).split(",") if d.strip()]
+                current_attrs["depends_on"] = deps
+            elif desc_match:
+                current_attrs["description"] = desc_match.group(1).strip()
+        elif current_block_type == "model":
+            fields_match = re.match(r'^fields\s*:\s*(.+)', line)
+            if fields_match:
+                fields = [f.strip() for f in fields_match.group(1).split(",") if f.strip()]
+                current_attrs["fields"] = fields
+
+    # Flush last block
+    if current_block_type == "component" and current_block_name:
+        components[current_block_name] = current_attrs
+    elif current_block_type == "model" and current_block_name:
+        models[current_block_name] = current_attrs
+
+    if not components and not models:
+        return {"blueprint_id": bp_id, "mermaid": "classDiagram\n  %% No components or models defined"}
+
+    lines = ["classDiagram"]
+
+    # Emit component classes
+    for name, attrs in components.items():
+        lines.append(f"  class {name} {{")
+        if attrs.get("description"):
+            lines.append(f"    +{attrs['description']}")
+        lines.append("  }")
+
+    # Emit model classes with fields
+    for name, attrs in models.items():
+        lines.append(f"  class {name} {{")
+        for field in attrs.get("fields", []):
+            lines.append(f"    +{field}")
+        lines.append("  }")
+
+    # Emit component dependency relationships
+    for name, attrs in components.items():
+        for dep in attrs.get("depends_on", []):
+            lines.append(f"  {name} --> {dep}")
+
+    return {"blueprint_id": bp_id, "mermaid": "\n".join(lines)}
 
 
 @router.delete("/{bp_id}")

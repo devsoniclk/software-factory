@@ -467,3 +467,39 @@ export function useGlobalSummary() {
     queryFn: () => client.get('/analytics/summary').then((r) => r.data),
   });
 }
+
+/* ─── Feedback link ─── */
+export function useLinkFeedback(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ fbId, workOrderId }) =>
+      client.patch(`/projects/${projectId}/feedbacks/${fbId}/link`, { work_order_id: workOrderId, status: 'linked' }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['feedback', projectId] }),
+  });
+}
+
+export function useWorkOrdersForProject(projectId) {
+  const { data: blueprints } = useBlueprints(projectId);
+  const bpList = Array.isArray(blueprints) ? blueprints : blueprints?.items || [];
+  return useQuery({
+    queryKey: ['all-work-orders', projectId],
+    queryFn: async () => {
+      const all = [];
+      for (const bp of bpList) {
+        const r = await client.get(`/blueprints/${bp.id || bp.blueprint_id}/work-orders`);
+        all.push(...(r.data || []).map((wo) => ({ ...wo, blueprint_name: bp.name })));
+      }
+      return all;
+    },
+    enabled: !!projectId && bpList.length > 0,
+  });
+}
+
+/* ─── Blueprint Mermaid ─── */
+export function useBlueprintMermaid(blueprintId) {
+  return useQuery({
+    queryKey: ['blueprint-mermaid', blueprintId],
+    queryFn: () => client.get(`/blueprints/${blueprintId}/mermaid`).then((r) => r.data),
+    enabled: false,
+  });
+}
