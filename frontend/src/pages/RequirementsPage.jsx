@@ -1,17 +1,25 @@
 import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Sparkles, FileText, CheckCircle2, AlertTriangle, ChevronDown, X, History, Edit2, Clock } from 'lucide-react';
+import { Plus, Sparkles, FileText, CheckCircle2, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, X, History, Edit2, Clock } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import MarkdownEditor from '../components/MarkdownEditor';
-import DiffViewer from '../components/DiffViewer';
-import AIReviewModal from '../components/AIReviewModal';
 import { PriorityBadge, StatusBadge, AIBadge } from '../components/Badge';
 import {
   useProjects, useRequirements, useCreateRequirement, useUpdateRequirement,
-  useGenerateRequirements, useVersionHistory, useVersionContent,
+  useUpdateRequirementStatus, useGenerateRequirements, useVersionHistory, useVersionContent,
 } from '../api/hooks';
+
+const PAGE_SIZE = 20;
+
+// Valid status transitions
+const REQ_TRANSITIONS = {
+  draft:       ['review'],
+  review:      ['approved', 'draft'],
+  approved:    ['implemented'],
+  implemented: [],
+};
 
 const stagger = (i) => ({
   initial: { opacity: 0, y: 6 },
@@ -19,17 +27,39 @@ const stagger = (i) => ({
   transition: { duration: 0.2, delay: i * 0.04, ease: [0.4, 0, 0.2, 1] },
 });
 
-function EARSWarningBadge({ count }) {
+function EARSWarningBadge({ warnings, count }) {
+  const [showList, setShowList] = useState(false);
   if (!count) return null;
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 3,
-      padding: '1px 6px', borderRadius: 'var(--radius-full)',
-      background: 'rgba(255, 159, 10, 0.12)', border: '1px solid rgba(255, 159, 10, 0.3)',
-      fontSize: 11, fontWeight: 500, color: 'var(--status-warning)',
-    }}>
+    <span
+      onClick={(e) => { e.stopPropagation(); setShowList((v) => !v); }}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 3,
+        padding: '1px 6px', borderRadius: 'var(--radius-full)',
+        background: 'rgba(255, 159, 10, 0.12)', border: '1px solid rgba(255, 159, 10, 0.3)',
+        fontSize: 11, fontWeight: 500, color: 'var(--status-warning)',
+        cursor: 'pointer', position: 'relative',
+      }}
+    >
       <AlertTriangle size={9} strokeWidth={2} />
-      {count} EARS
+      {count} EARS warning{count !== 1 ? 's' : ''}
+      {showList && Array.isArray(warnings) && warnings.length > 0 && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 20,
+            background: 'var(--color-bg)', border: '1px solid var(--border)',
+            borderRadius: 8, boxShadow: 'var(--shadow-md)', padding: '8px 10px',
+            minWidth: 240, maxWidth: 320,
+          }}
+        >
+          {warnings.map((w, i) => (
+            <div key={i} style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, paddingBottom: 4 }}>
+              {typeof w === 'string' ? w : w.message || w.suggestion || JSON.stringify(w)}
+            </div>
+          ))}
+        </div>
+      )}
     </span>
   );
 }
@@ -53,10 +83,7 @@ function ReqIdBadge({ reqId }) {
 function VersionHistory({ entityType, entityId, onClose }) {
   const { data: versions, isLoading } = useVersionHistory(entityType, entityId);
   const [selectedVersion, setSelectedVersion] = useState(null);
-  const [diffMode, setDiffMode] = useState(false);
   const { data: versionContent } = useVersionContent(entityType, entityId, selectedVersion);
-  const prevVer = selectedVersion && selectedVersion > 1 ? selectedVersion - 1 : null;
-  const { data: prevContent } = useVersionContent(entityType, entityId, prevVer);
 
   return (
     <div>
@@ -118,52 +145,36 @@ function VersionHistory({ entityType, entityId, onClose }) {
             exit={{ opacity: 0, height: 0 }}
             style={{ overflow: 'hidden', marginTop: 12 }}
           >
-            <div style={{ padding: 14, borderRadius: 8, background: 'var(--color-bg-secondary)', border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Version {selectedVersion}
-                </p>
-                {prevVer && (
-                  <button
-                    onClick={() => setDiffMode((d) => !d)}
-                    style={{ fontSize: 11, color: diffMode ? 'var(--accent)' : 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
-                  >
-                    {diffMode ? 'Hide diff' : `Show diff vs v${prevVer}`}
-                  </button>
+            <div style={{
+              padding: 14, borderRadius: 8,
+              background: 'var(--color-bg-secondary)', border: '1px solid var(--border)',
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                Version {selectedVersion} Content
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div>
+                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>Title</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{versionContent.content?.title}</p>
+                </div>
+                {versionContent.content?.description && (
+                  <div>
+                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>Description</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{versionContent.content.description}</p>
+                  </div>
+                )}
+                {versionContent.content?.acceptance_criteria?.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>Acceptance Criteria</p>
+                    {versionContent.content.acceptance_criteria.map((ac, i) => (
+                      <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 6, marginBottom: 4 }}>
+                        <CheckCircle2 size={11} style={{ flexShrink: 0, marginTop: 2, color: 'var(--status-success)' }} />
+                        {ac}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              {diffMode && prevContent ? (
-                <DiffViewer
-                  oldContent={[prevContent.content?.title || '', prevContent.content?.description || '', ...(prevContent.content?.acceptance_criteria || [])].join('\n\n')}
-                  newContent={[versionContent.content?.title || '', versionContent.content?.description || '', ...(versionContent.content?.acceptance_criteria || [])].join('\n\n')}
-                  oldLabel={`v${prevVer}`}
-                  newLabel={`v${selectedVersion}`}
-                />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div>
-                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>Title</p>
-                    <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{versionContent.content?.title}</p>
-                  </div>
-                  {versionContent.content?.description && (
-                    <div>
-                      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>Description</p>
-                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{versionContent.content.description}</p>
-                    </div>
-                  )}
-                  {versionContent.content?.acceptance_criteria?.length > 0 && (
-                    <div>
-                      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>Acceptance Criteria</p>
-                      {versionContent.content.acceptance_criteria.map((ac, i) => (
-                        <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 6, marginBottom: 4 }}>
-                          <CheckCircle2 size={11} style={{ flexShrink: 0, marginTop: 2, color: 'var(--status-success)' }} />
-                          {ac}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </motion.div>
         )}
@@ -172,35 +183,71 @@ function VersionHistory({ entityType, entityId, onClose }) {
   );
 }
 
+function Pagination({ page, setPage, count }) {
+  const hasPrev = page > 0;
+  const hasNext = count === PAGE_SIZE; // if we got a full page, there may be more
+  if (!hasPrev && !hasNext) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 16 }}>
+      <button
+        onClick={() => setPage((p) => Math.max(0, p - 1))}
+        disabled={!hasPrev}
+        className="btn-ghost"
+        style={{ padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+      >
+        <ChevronLeft size={13} strokeWidth={1.5} /> Previous
+      </button>
+      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Page {page + 1}</span>
+      <button
+        onClick={() => setPage((p) => p + 1)}
+        disabled={!hasNext}
+        className="btn-ghost"
+        style={{ padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+      >
+        Next <ChevronRight size={13} strokeWidth={1.5} />
+      </button>
+    </div>
+  );
+}
+
 const BLANK_FORM = { title: '', description: '', priority: 3, acceptance_criteria: '' };
 
 export default function RequirementsPage() {
-  const [projectId, setProjectId] = useState('');
+  const { projectId: urlProjectId } = useParams();
+  const navigate = useNavigate();
+  const [localProjectId, setLocalProjectId] = useState('');
+  const projectId = urlProjectId || localProjectId;
+
+  const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
-  const [aiReviewItems, setAiReviewItems] = useState(null);
   const [detailReq, setDetailReq] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [form, setForm] = useState(BLANK_FORM);
   const [aiDesc, setAiDesc] = useState('');
+  const [statusError, setStatusError] = useState(null);
 
   const { data: projects } = useProjects();
   const projectList = Array.isArray(projects) ? projects : projects?.items || projects?.projects || [];
-  const { data: requirements, isLoading } = useRequirements(projectId);
+  const { data: requirements, isLoading } = useRequirements(projectId, page);
   const reqList = Array.isArray(requirements) ? requirements : requirements?.items || requirements?.requirements || [];
   const createReq = useCreateRequirement(projectId);
   const updateReq = useUpdateRequirement(projectId);
+  const updateStatus = useUpdateRequirementStatus(projectId);
   const genReqs = useGenerateRequirements();
 
   const openDetail = (r) => {
     setDetailReq(r);
     setEditMode(false);
     setHistoryOpen(false);
+    setStatusError(null);
   };
 
   const startEdit = () => {
-    const ac = JSON.parse(detailReq.acceptance_criteria_json || '[]');
+    const ac = Array.isArray(detailReq.acceptance_criteria)
+      ? detailReq.acceptance_criteria
+      : (detailReq.acceptance_criteria_json ? JSON.parse(detailReq.acceptance_criteria_json) : []);
     setForm({
       title: detailReq.title,
       description: detailReq.description,
@@ -247,37 +294,38 @@ export default function RequirementsPage() {
     );
   };
 
-  const handleAIGenerate = () => {
-    if (!aiDesc.trim() || !projectId) return;
-    genReqs.mutate(
-      { projectId, project_description: aiDesc },
+  const handleStatusChange = (newStatus) => {
+    if (!detailReq) return;
+    setStatusError(null);
+    updateStatus.mutate(
+      { reqId: detailReq.id, status: newStatus },
       {
-        onSuccess: (data) => {
-          setAiOpen(false);
-          setAiDesc('');
-          // data may be an array of requirements or { requirements: [...] }
-          const items = Array.isArray(data) ? data : (data?.requirements || data?.items || []);
-          if (items.length > 0) {
-            // Tag each item with a stable id for the review modal
-            setAiReviewItems(items.map((r, i) => ({ ...r, id: r.id || `ai-${i}` })));
+        onSuccess: (updated) => setDetailReq(updated),
+        onError: (err) => {
+          const body = err.response?.data;
+          if (body?.message) {
+            const allowed = body.allowed?.join(', ') || 'none';
+            setStatusError(`Cannot change status: ${body.message}. Allowed next statuses: ${allowed}`);
+          } else {
+            setStatusError('Status update failed.');
           }
         },
       }
     );
   };
 
-  const handleAIReviewConfirm = (accepted) => {
-    // Save only accepted items — they're already persisted by the backend generate call,
-    // so we just close the modal. If user rejects some, we delete them.
-    // The backend already saved all; delete the ones not accepted.
-    const acceptedIds = new Set(accepted.map((r) => r.id));
-    aiReviewItems?.forEach((r) => {
-      if (r.id && !acceptedIds.has(r.id) && !r.id.startsWith('ai-')) {
-        // If the backend saved it with a real id, we'd delete it — skip for now
-        // as delete endpoint may not exist; leave as-is for MVP
-      }
-    });
-    setAiReviewItems(null);
+  const handleAIGenerate = () => {
+    if (!aiDesc.trim() || !projectId) return;
+    genReqs.mutate(
+      { projectId, project_description: aiDesc },
+      { onSuccess: () => { setAiOpen(false); setAiDesc(''); } }
+    );
+  };
+
+  const handleProjectChange = (pid) => {
+    setLocalProjectId(pid);
+    setPage(0);
+    if (pid) navigate(`/project/${pid}/requirements`);
   };
 
   return (
@@ -288,28 +336,41 @@ export default function RequirementsPage() {
           <p className="page-subtitle">Define what needs to be built</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative' }}>
-            <select
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className="input-base"
-              style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}
-            >
-              <option value="">Select project</option>
-              {projectList.map((p) => (
-                <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>
-              ))}
-            </select>
-            <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          </div>
-          <button onClick={() => setAiOpen(true)} disabled={!projectId} className="btn-ai">
-            <Sparkles size={13} strokeWidth={1.5} /> AI Generate
+          {!urlProjectId && (
+            <div style={{ position: 'relative' }}>
+              <select
+                value={localProjectId}
+                onChange={(e) => handleProjectChange(e.target.value)}
+                className="input-base"
+                style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}
+              >
+                <option value="">Select project</option>
+                {projectList.map((p) => (
+                  <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+            </div>
+          )}
+          <button
+            onClick={() => setAiOpen(true)}
+            disabled={!projectId || genReqs.isPending}
+            className="btn-ai"
+          >
+            <Sparkles size={13} strokeWidth={1.5} />
+            {genReqs.isPending ? 'Generating…' : 'AI Generate'}
           </button>
           <button onClick={() => { setForm(BLANK_FORM); setCreateOpen(true); }} disabled={!projectId} className="btn-primary">
             <Plus size={14} strokeWidth={2} /> Add
           </button>
         </div>
       </div>
+
+      {genReqs.isPending && (
+        <div style={{ padding: '10px 14px', marginBottom: 12, borderRadius: 8, background: 'rgba(0,82,255,0.06)', border: '1px solid rgba(0,82,255,0.15)', fontSize: 13, color: 'var(--accent)' }}>
+          Generating requirements… this may take 20–30 seconds
+        </div>
+      )}
 
       {!projectId ? (
         <EmptyState icon={FileText} title="Select a project" description="Choose a project above to view its requirements." />
@@ -326,63 +387,73 @@ export default function RequirementsPage() {
           onAction={() => { setForm(BLANK_FORM); setCreateOpen(true); }}
         />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {reqList.map((r, i) => {
-            const ac = JSON.parse(r.acceptance_criteria_json || '[]');
-            const earWarn = JSON.parse(r.ears_warnings_json || '[]');
-            return (
-              <motion.div key={r.id} {...stagger(i)}>
-                <GlassCard
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => openDetail(r)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                        <ReqIdBadge reqId={r.req_id} />
-                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>{r.title}</span>
-                        {r.ai_generated && <AIBadge />}
-                        <EARSWarningBadge count={earWarn.length} />
-                      </div>
-                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {r.description}
-                      </p>
-                      {ac.length > 0 && (
-                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {ac.slice(0, 3).map((criterion, idx) => {
-                            const hasWarning = earWarn.some((w) => w.index === idx);
-                            return (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: hasWarning ? 'var(--status-warning)' : 'var(--text-secondary)' }}>
-                                {hasWarning
-                                  ? <AlertTriangle size={11} strokeWidth={1.5} style={{ marginTop: 1, flexShrink: 0 }} />
-                                  : <CheckCircle2 size={11} strokeWidth={1.5} style={{ marginTop: 1, flexShrink: 0, color: 'var(--status-success)' }} />
-                                }
-                                {criterion}
-                              </div>
-                            );
-                          })}
-                          {ac.length > 3 && (
-                            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 17 }}>+{ac.length - 3} more</span>
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {reqList.map((r, i) => {
+              // Support both new typed fields and old JSON strings
+              const ac = Array.isArray(r.acceptance_criteria)
+                ? r.acceptance_criteria
+                : (r.acceptance_criteria_json ? JSON.parse(r.acceptance_criteria_json) : []);
+              const earWarn = Array.isArray(r.ears_warnings)
+                ? r.ears_warnings
+                : (r.ears_warnings_json ? JSON.parse(r.ears_warnings_json) : []);
+              return (
+                <motion.div key={r.id} {...stagger(i)}>
+                  <GlassCard
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => openDetail(r)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                          <ReqIdBadge reqId={r.req_id} />
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>{r.title}</span>
+                          {r.ai_generated && <AIBadge />}
+                          {earWarn.length > 0 && (
+                            <EARSWarningBadge count={earWarn.length} warnings={earWarn} />
                           )}
                         </div>
-                      )}
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {r.description}
+                        </p>
+                        {ac.length > 0 && (
+                          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {ac.slice(0, 3).map((criterion, idx) => {
+                              const hasWarning = earWarn.some((w) => w.index === idx);
+                              return (
+                                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: hasWarning ? 'var(--status-warning)' : 'var(--text-secondary)' }}>
+                                  {hasWarning
+                                    ? <AlertTriangle size={11} strokeWidth={1.5} style={{ marginTop: 1, flexShrink: 0 }} />
+                                    : <CheckCircle2 size={11} strokeWidth={1.5} style={{ marginTop: 1, flexShrink: 0, color: 'var(--status-success)' }} />
+                                  }
+                                  {criterion}
+                                </div>
+                              );
+                            })}
+                            {ac.length > 3 && (
+                              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 17 }}>+{ac.length - 3} more</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <PriorityBadge level={r.priority} />
+                        <StatusBadge status={r.status || 'draft'} />
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                      <PriorityBadge level={r.priority} />
-                      <StatusBadge status={r.status || 'draft'} />
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
-            );
-          })}
-        </div>
+                  </GlassCard>
+                </motion.div>
+              );
+            })}
+          </div>
+          <Pagination page={page} setPage={setPage} count={reqList.length} />
+        </>
       )}
 
       {/* Detail / Edit modal */}
       <Modal
         isOpen={!!detailReq}
-        onClose={() => { setDetailReq(null); setEditMode(false); setHistoryOpen(false); }}
+        onClose={() => { setDetailReq(null); setEditMode(false); setHistoryOpen(false); setStatusError(null); }}
         title={editMode ? 'Edit Requirement' : (detailReq?.req_id ? `${detailReq.req_id}` : 'Requirement')}
       >
         {detailReq && !historyOpen && !editMode && (
@@ -406,6 +477,36 @@ export default function RequirementsPage() {
               </div>
             </div>
 
+            {/* Status transitions */}
+            {(() => {
+              const current = (detailReq.status || 'draft').toLowerCase();
+              const allowed = REQ_TRANSITIONS[current] || [];
+              if (!allowed.length) return null;
+              return (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Change Status</p>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {allowed.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleStatusChange(s)}
+                        disabled={updateStatus.isPending}
+                        className="btn-ghost"
+                        style={{ fontSize: 12, padding: '4px 10px', textTransform: 'capitalize' }}
+                      >
+                        → {s}
+                      </button>
+                    ))}
+                  </div>
+                  {statusError && (
+                    <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 6, background: 'rgba(196,0,10,0.06)', border: '1px solid rgba(196,0,10,0.2)', fontSize: 12, color: '#C4000A' }}>
+                      {statusError}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {detailReq.description && (
               <div>
                 <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Description</p>
@@ -414,14 +515,18 @@ export default function RequirementsPage() {
             )}
 
             {(() => {
-              const ac = JSON.parse(detailReq.acceptance_criteria_json || '[]');
-              const earWarn = JSON.parse(detailReq.ears_warnings_json || '[]');
+              const ac = Array.isArray(detailReq.acceptance_criteria)
+                ? detailReq.acceptance_criteria
+                : (detailReq.acceptance_criteria_json ? JSON.parse(detailReq.acceptance_criteria_json) : []);
+              const earWarn = Array.isArray(detailReq.ears_warnings)
+                ? detailReq.ears_warnings
+                : (detailReq.ears_warnings_json ? JSON.parse(detailReq.ears_warnings_json) : []);
               if (!ac.length) return null;
               return (
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                     <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Acceptance Criteria</p>
-                    {earWarn.length > 0 && <EARSWarningBadge count={earWarn.length} />}
+                    {earWarn.length > 0 && <EARSWarningBadge count={earWarn.length} warnings={earWarn} />}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {ac.map((criterion, idx) => {
@@ -478,7 +583,7 @@ export default function RequirementsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Description</label>
-              <MarkdownEditor value={form.description || ''} onChange={(v) => setForm({ ...form, description: v })} rows={4} placeholder="Describe the requirement (markdown supported)" />
+              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="input-base" style={{ resize: 'none' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Priority</label>
@@ -514,7 +619,7 @@ export default function RequirementsPage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Description</label>
-            <MarkdownEditor value={form.description || ''} onChange={(v) => setForm({ ...form, description: v })} rows={4} placeholder="Describe the requirement (markdown supported)" />
+            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Describe the requirement" className="input-base" style={{ resize: 'none' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Priority</label>
@@ -569,22 +674,6 @@ export default function RequirementsPage() {
           </div>
         </div>
       </Modal>
-
-      {/* AI Review Modal — shown after generation */}
-      {aiReviewItems && (
-        <AIReviewModal
-          title="Review AI-Generated Requirements"
-          items={aiReviewItems}
-          renderItem={(item) => (
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{item.title}</div>
-              {item.req_id && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: 'monospace' }}>{item.req_id}</div>}
-            </div>
-          )}
-          onConfirm={handleAIReviewConfirm}
-          onCancel={() => setAiReviewItems(null)}
-        />
-      )}
     </div>
   );
 }

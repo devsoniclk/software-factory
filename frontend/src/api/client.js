@@ -13,4 +13,17 @@ client.interceptors.response.use(
   }
 );
 
+// Bootstrap API key on startup — exempt endpoint, no auth needed
+async function bootstrapApiKey() {
+  try {
+    const res = await axios.get('http://localhost:8099/health/api-key');
+    if (res.data?.api_key) {
+      client.defaults.headers.common['X-API-Key'] = res.data.api_key;
+    }
+  } catch (e) {
+    console.error('Failed to retrieve API key:', e);
+  }
+}
+bootstrapApiKey();
+
 export default client;

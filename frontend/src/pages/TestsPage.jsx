@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FlaskConical, CheckCircle2, XCircle, Clock, Sparkles, ChevronDown } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
@@ -24,8 +25,10 @@ const SelectField = ({ value, onChange, children, disabled }) => (
 );
 
 export default function TestsPage() {
-  const [projectId, setProjectId] = useState('');
-  const [reqId, setReqId]         = useState('');
+  const { projectId: urlProjectId } = useParams();
+  const [localProjectId, setLocalProjectId] = useState('');
+  const projectId = urlProjectId || localProjectId;
+  const [reqId, setReqId] = useState('');
 
   const { data: projects } = useProjects();
   const projectList = Array.isArray(projects) ? projects : projects?.items || projects?.projects || [];
@@ -47,10 +50,12 @@ export default function TestsPage() {
           <p className="page-subtitle">Test cases and coverage</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <SelectField value={projectId} onChange={(e) => { setProjectId(e.target.value); setReqId(''); }}>
-            <option value="">Project…</option>
-            {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
-          </SelectField>
+          {!urlProjectId && (
+            <SelectField value={localProjectId} onChange={(e) => { setLocalProjectId(e.target.value); setReqId(''); }}>
+              <option value="">Project…</option>
+              {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
+            </SelectField>
+          )}
           <SelectField value={reqId} onChange={(e) => setReqId(e.target.value)} disabled={!projectId}>
             <option value="">Requirement…</option>
             {reqList.map((r) => <option key={r.id || r.requirement_id} value={r.id || r.requirement_id}>{r.title}</option>)}

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GitFork, ZoomIn, ZoomOut, Maximize, ChevronDown } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
@@ -14,7 +15,9 @@ const NODE_COLORS = {
 };
 
 export default function KnowledgeGraphPage() {
-  const [projectId, setProjectId] = useState('');
+  const { projectId: urlProjectId } = useParams();
+  const [localProjectId, setLocalProjectId] = useState('');
+  const projectId = urlProjectId || localProjectId;
   const canvasRef = useRef(null);
   const animRef   = useRef(null);
   const nodesRef  = useRef([]);
@@ -206,13 +209,15 @@ export default function KnowledgeGraphPage() {
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>Visual map of project entities</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div style={{ position: 'relative' }}>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="input-base" style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}>
-              <option value="">Select project…</option>
-              {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
-            </select>
-            <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          </div>
+          {!urlProjectId && (
+            <div style={{ position: 'relative' }}>
+              <select value={localProjectId} onChange={(e) => setLocalProjectId(e.target.value)} className="input-base" style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}>
+                <option value="">Select project…</option>
+                {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
+              </select>
+              <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={() => zoom('out')} style={iconBtnStyle}><ZoomOut size={14} strokeWidth={1.5} /></button>
             <button onClick={() => zoom('in')}  style={iconBtnStyle}><ZoomIn  size={14} strokeWidth={1.5} /></button>

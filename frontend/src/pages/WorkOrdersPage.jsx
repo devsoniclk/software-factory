@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Sparkles, ListChecks, Code2, ChevronDown } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
@@ -19,8 +20,11 @@ const SelectField = ({ value, onChange, children, disabled }) => (
 );
 
 export default function WorkOrdersPage() {
-  const [projectId, setProjectId]   = useState('');
-  const [blueprintId, setBlueprintId] = useState('');
+  const { projectId: urlProjectId, blueprintId: urlBlueprintId } = useParams();
+  const [localProjectId, setLocalProjectId] = useState('');
+  const [localBlueprintId, setLocalBlueprintId] = useState('');
+  const projectId   = urlProjectId   || localProjectId;
+  const blueprintId = urlBlueprintId || localBlueprintId;
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', files_to_modify: '' });
 
@@ -49,14 +53,18 @@ export default function WorkOrdersPage() {
           <p className="page-subtitle">Atomic implementation tasks</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <SelectField value={projectId} onChange={(e) => { setProjectId(e.target.value); setBlueprintId(''); }}>
-            <option value="">Project…</option>
-            {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
-          </SelectField>
-          <SelectField value={blueprintId} onChange={(e) => setBlueprintId(e.target.value)} disabled={!projectId}>
-            <option value="">Blueprint…</option>
-            {bpList.map((b) => <option key={b.id || b.blueprint_id} value={b.id || b.blueprint_id}>{b.name}</option>)}
-          </SelectField>
+          {!urlProjectId && (
+            <SelectField value={localProjectId} onChange={(e) => { setLocalProjectId(e.target.value); setLocalBlueprintId(''); }}>
+              <option value="">Project…</option>
+              {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
+            </SelectField>
+          )}
+          {!urlBlueprintId && (
+            <SelectField value={localBlueprintId} onChange={(e) => setLocalBlueprintId(e.target.value)} disabled={!projectId}>
+              <option value="">Blueprint…</option>
+              {bpList.map((b) => <option key={b.id || b.blueprint_id} value={b.id || b.blueprint_id}>{b.name}</option>)}
+            </SelectField>
+          )}
           <button onClick={() => blueprintId && genWo.mutate({ blueprintId })} disabled={!blueprintId} className="btn-ai">
             <Sparkles size={13} strokeWidth={1.5} /> AI Generate
           </button>

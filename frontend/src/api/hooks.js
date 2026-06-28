@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from './client';
 
+const PAGE_SIZE = 20;
+
 /* ─── Projects ─── */
 export function useProjects() {
   return useQuery({
@@ -50,11 +52,24 @@ export function useSaveProductOverview(projectId) {
   });
 }
 
-/* ─── Requirements ─── */
-export function useRequirements(projectId) {
+export function useProjectAnalytics(projectId) {
   return useQuery({
-    queryKey: ['requirements', projectId],
-    queryFn: () => client.get(`/projects/${projectId}/requirements`).then((r) => r.data),
+    queryKey: ['analytics', projectId],
+    queryFn: () => client.get(`/analytics/project/${projectId}`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+/* ─── Requirements ─── */
+export function useRequirements(projectId, page = 0) {
+  return useQuery({
+    queryKey: ['requirements', projectId, page],
+    queryFn: () =>
+      client
+        .get(`/projects/${projectId}/requirements`, {
+          params: { skip: page * PAGE_SIZE, limit: PAGE_SIZE },
+        })
+        .then((r) => r.data),
     enabled: !!projectId,
   });
 }
@@ -82,15 +97,20 @@ export function useUpdateRequirementStatus(projectId) {
   return useMutation({
     mutationFn: ({ reqId, status }) =>
       client.patch(`/projects/${projectId}/requirements/${reqId}/status?new_status=${status}`).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['requirements'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['requirements', projectId] }),
   });
 }
 
 /* ─── Blueprints ─── */
-export function useBlueprints(projectId) {
+export function useBlueprints(projectId, page = 0) {
   return useQuery({
-    queryKey: ['blueprints', projectId],
-    queryFn: () => client.get(`/projects/${projectId}/blueprints`).then((r) => r.data),
+    queryKey: ['blueprints', projectId, page],
+    queryFn: () =>
+      client
+        .get(`/projects/${projectId}/blueprints`, {
+          params: { skip: page * PAGE_SIZE, limit: PAGE_SIZE },
+        })
+        .then((r) => r.data),
     enabled: !!projectId,
   });
 }
@@ -109,7 +129,11 @@ export function useUpdateBlueprint(projectId) {
   return useMutation({
     mutationFn: ({ bpId, ...data }) =>
       client.put(`/projects/${projectId}/blueprints/${bpId}`, data).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['blueprints', projectId] }),
+    onSuccess: (_, { bpId }) => {
+      qc.invalidateQueries({ queryKey: ['blueprints', projectId] });
+      // Re-fetch parsed nodes after blueprint update (Fix 15)
+      qc.invalidateQueries({ queryKey: ['blueprint-parsed', projectId, bpId] });
+    },
   });
 }
 
@@ -122,10 +146,15 @@ export function useParsedBlueprint(projectId, bpId) {
 }
 
 /* ─── Work Orders ─── */
-export function useWorkOrders(blueprintId) {
+export function useWorkOrders(blueprintId, page = 0) {
   return useQuery({
-    queryKey: ['work-orders', blueprintId],
-    queryFn: () => client.get(`/blueprints/${blueprintId}/work-orders`).then((r) => r.data),
+    queryKey: ['work-orders', blueprintId, page],
+    queryFn: () =>
+      client
+        .get(`/blueprints/${blueprintId}/work-orders`, {
+          params: { skip: page * PAGE_SIZE, limit: PAGE_SIZE },
+        })
+        .then((r) => r.data),
     enabled: !!blueprintId,
   });
 }
@@ -144,7 +173,7 @@ export function useUpdateWorkOrderStatus(blueprintId) {
   return useMutation({
     mutationFn: ({ woId, status }) =>
       client.patch(`/blueprints/${blueprintId}/work-orders/${woId}/status?new_status=${status}`).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['work-orders'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['work-orders', blueprintId] }),
   });
 }
 
@@ -233,7 +262,7 @@ export function useGenerateRequirements() {
   return useMutation({
     mutationFn: ({ projectId, project_description }) =>
       client.post('/ai/generate-requirements', { project_id: projectId, project_description }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['requirements'] }),
+    onSuccess: (_, { projectId }) => qc.invalidateQueries({ queryKey: ['requirements', projectId] }),
   });
 }
 
@@ -242,7 +271,7 @@ export function useGenerateBlueprint() {
   return useMutation({
     mutationFn: ({ projectId, project_description }) =>
       client.post('/ai/generate-blueprint', { project_id: projectId, project_description }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['blueprints'] }),
+    onSuccess: (_, { projectId }) => qc.invalidateQueries({ queryKey: ['blueprints', projectId] }),
   });
 }
 
@@ -251,7 +280,7 @@ export function useGenerateWorkOrders() {
   return useMutation({
     mutationFn: ({ blueprintId }) =>
       client.post('/ai/generate-work-orders', { blueprint_id: blueprintId }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['work-orders'] }),
+    onSuccess: (_, { blueprintId }) => qc.invalidateQueries({ queryKey: ['work-orders', blueprintId] }),
   });
 }
 
@@ -269,7 +298,7 @@ export function useParseFeedback() {
   return useMutation({
     mutationFn: ({ projectId, feedback_text, source = 'manual' }) =>
       client.post('/ai/parse-feedback', { project_id: projectId, feedback_text, source }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feedback'] }),
+    onSuccess: (_, { projectId }) => qc.invalidateQueries({ queryKey: ['feedback', projectId] }),
   });
 }
 
@@ -318,26 +347,14 @@ export function useExportMarkdown(projectId) {
   });
 }
 
-export function useGitExport() {
-  return useMutation({
-    mutationFn: (projectId) => client.post(`/export/project/${projectId}/git-init`).then((r) => r.data),
-  });
-}
-
-/* ─── Traceability ─── */
-export function useTraceability(projectId) {
+/* ─── Token Usage ─── */
+export function useTokenUsage(projectId) {
   return useQuery({
-    queryKey: ['traceability', projectId],
-    queryFn: () => client.get(`/projects/${projectId}/traceability`).then((r) => r.data),
-    enabled: !!projectId,
-  });
-}
-
-export function useGaps(projectId) {
-  return useQuery({
-    queryKey: ['gaps', projectId],
-    queryFn: () => client.get(`/projects/${projectId}/gaps`).then((r) => r.data),
-    enabled: !!projectId,
+    queryKey: ['token-usage', projectId || 'global'],
+    queryFn: () =>
+      projectId
+        ? client.get(`/token-usage/project/${projectId}`).then((r) => r.data)
+        : client.get('/token-usage/global').then((r) => r.data),
   });
 }
 
@@ -368,75 +385,5 @@ export function useRedeemReferral() {
   return useMutation({
     mutationFn: (code) => client.post(`/referrals/redeem/${code}`).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['referral-stats'] }),
-  });
-}
-
-/* ─── Templates ─── */
-export function useTemplates() {
-  return useQuery({
-    queryKey: ['templates'],
-    queryFn: () => client.get('/templates').then((r) => r.data),
-  });
-}
-
-export function useTemplate(templateId) {
-  return useQuery({
-    queryKey: ['template', templateId],
-    queryFn: () => client.get(`/templates/${templateId}`).then((r) => r.data),
-    enabled: !!templateId,
-  });
-}
-
-export function useApplyTemplate() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ templateId, project_name, project_description }) =>
-      client.post(`/templates/${templateId}/apply`, { project_name, project_description }).then((r) => r.data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['projects'] });
-      qc.invalidateQueries({ queryKey: ['requirements'] });
-      qc.invalidateQueries({ queryKey: ['blueprints'] });
-    },
-  });
-}
-
-/* ─── ER Diagram ─── */
-export function useERDiagram(projectId) {
-  return useQuery({
-    queryKey: ['er-diagram', projectId],
-    queryFn: () => client.get(`/er-diagram/project/${projectId}`).then((r) => r.data),
-    enabled: !!projectId,
-  });
-}
-
-export function useBlueprintERDiagram(blueprintId) {
-  return useQuery({
-    queryKey: ['er-diagram-bp', blueprintId],
-    queryFn: () => client.get(`/er-diagram/blueprint/${blueprintId}`).then((r) => r.data),
-    enabled: !!blueprintId,
-  });
-}
-
-/* ─── Analytics ─── */
-export function useProjectAnalytics(projectId) {
-  return useQuery({
-    queryKey: ['analytics', projectId],
-    queryFn: () => client.get(`/analytics/project/${projectId}`).then((r) => r.data),
-    enabled: !!projectId,
-  });
-}
-
-export function useGlobalSummary() {
-  return useQuery({
-    queryKey: ['analytics-summary'],
-    queryFn: () => client.get('/analytics/summary').then((r) => r.data),
-  });
-}
-
-/* ─── Token Usage ─── */
-export function useTokenUsage(projectId) {
-  return useQuery({
-    queryKey: ['token-usage', projectId],
-    queryFn: () => client.get('/token-usage/global').then((r) => r.data),
   });
 }

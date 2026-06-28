@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Sparkles, Layers, Box, ShieldAlert, ChevronDown, Code2, Eye, History, Edit2, Network, BookOpen, AlertOctagon } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
@@ -189,7 +190,10 @@ function VersionHistoryPanel({ bpId }) {
 const BLANK_FORM = { name: '', description: '', dsl_content: '', decisions: '', components: '', constraints: '' };
 
 export default function BlueprintsPage() {
-  const [projectId, setProjectId] = useState('');
+  const { projectId: urlProjectId } = useParams();
+  const navigate = useNavigate();
+  const [localProjectId, setLocalProjectId] = useState('');
+  const projectId = urlProjectId || localProjectId;
   const [createOpen, setCreateOpen] = useState(false);
   const [detailBp, setDetailBp] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -279,13 +283,15 @@ export default function BlueprintsPage() {
           <p className="page-subtitle">Architecture decisions and component graph</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative' }}>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="input-base" style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}>
-              <option value="">Select project</option>
-              {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
-            </select>
-            <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          </div>
+          {!urlProjectId && (
+            <div style={{ position: 'relative' }}>
+              <select value={localProjectId} onChange={(e) => { setLocalProjectId(e.target.value); if (e.target.value) navigate(`/project/${e.target.value}/blueprints`); }} className="input-base" style={{ width: 'auto', paddingRight: 32, appearance: 'none', cursor: 'pointer' }}>
+                <option value="">Select project</option>
+                {projectList.map((p) => <option key={p.id || p.project_id} value={p.id || p.project_id}>{p.name}</option>)}
+              </select>
+              <ChevronDown size={13} strokeWidth={1.5} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+            </div>
+          )}
           <button
             onClick={() => projectId && genBp.mutate(
               { projectId },
@@ -318,7 +324,7 @@ export default function BlueprintsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {bpList.map((bp, i) => {
-            const parsedNodes = JSON.parse(bp.parsed_nodes_json || '[]');
+            const parsedNodes = Array.isArray(bp.parsed_nodes) ? bp.parsed_nodes : (bp.parsed_nodes_json ? JSON.parse(bp.parsed_nodes_json) : []);
             const nodesByType = parsedNodes.reduce((a, n) => { a[n.type] = (a[n.type] || 0) + 1; return a; }, {});
             return (
               <motion.div key={bp.id} {...stagger(i)}>

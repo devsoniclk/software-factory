@@ -118,11 +118,11 @@ export default function Dashboard() {
 
       {/* Stat cards */}
       <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 24 }}>
-        <StatCard label="Requirements" value={reqList.length || 0}  sub="Feature nodes"       to="/requirements" delay={2} />
-        <StatCard label="Blueprints"   value={bpList.length || 0}   sub="Blueprints created"  to="/blueprints"   delay={3} />
-        <StatCard label="Work Orders"  value={`${woList.filter(w=>w.status==='completed'||w.status==='done').length}/${woList.length}`} sub="Completed" to="/work-orders" delay={4} />
-        <StatCard label="Feedback"     value={fbList.length || 0}   sub="Feedback items"      to="/feedback"     delay={5} />
-        <StatCard label="Tests"        value={0}                    sub="Test cases"           to="/tests"        delay={6} />
+        <StatCard label="Requirements" value={reqList.length || 0}  sub="Feature nodes"       to={pid ? `/project/${pid}/requirements` : '/requirements'} delay={2} />
+        <StatCard label="Blueprints"   value={bpList.length || 0}   sub="Blueprints created"  to={pid ? `/project/${pid}/blueprints`   : '/blueprints'}   delay={3} />
+        <StatCard label="Work Orders"  value={`${woList.filter(w=>w.status==='completed'||w.status==='done').length}/${woList.length}`} sub="Completed" to={pid ? `/project/${pid}/work-orders` : '/work-orders'} delay={4} />
+        <StatCard label="Feedback"     value={fbList.length || 0}   sub="Feedback items"      to={pid ? `/project/${pid}/feedback`    : '/feedback'}     delay={5} />
+        <StatCard label="Tests"        value={0}                    sub="Test cases"           to={pid ? `/project/${pid}/tests`       : '/tests'}        delay={6} />
       </div>
 
       {/* Projects / Codebase card */}
@@ -132,7 +132,7 @@ export default function Dashboard() {
             {projectList.map((p, i) => (
               <Link
                 key={p.id || p.project_id}
-                to={`/requirements?project=${p.id || p.project_id}`}
+                to={`/project/${p.id || p.project_id}/requirements`}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '16px 20px',
