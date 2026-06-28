@@ -294,3 +294,73 @@ class TokenUsageLog(Base):
     tokens_saved    = Column(Integer, nullable=False, default=0)   # saved by compression
     cache_hit       = Column(Boolean, nullable=False, default=False)
     timestamp       = Column(String, nullable=False, default=now_iso)
+
+
+class Repository(Base):
+    """A local code repository connected to a project for indexing."""
+    __tablename__ = "repositories"
+    __table_args__ = (
+        Index("ix_repositories_project_id", "project_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(500), nullable=False)
+    local_path = Column(String(2000), nullable=False)
+    branch = Column(String(200), default="main")
+    include_patterns_json = Column(Text, default='["**/*.py","**/*.ts","**/*.tsx","**/*.js","**/*.jsx"]')
+    exclude_patterns_json = Column(Text, default='["**/node_modules/**","**/.git/**","**/dist/**","**/build/**"]')
+    status = Column(String(50), default="idle")   # idle | indexing | ready | error
+    last_indexed_at = Column(String, nullable=True)
+    symbol_count = Column(Integer, default=0)
+    error_message = Column(Text, default="")
+    created_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])
+
+
+class CodeSymbol(Base):
+    """A single extracted symbol (function, class, method, variable) from an indexed file."""
+    __tablename__ = "code_symbols"
+    __table_args__ = (
+        Index("ix_code_symbols_repo_id", "repo_id"),
+        Index("ix_code_symbols_file", "repo_id", "file_path"),
+        Index("ix_code_symbols_name", "name"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    repo_id = Column(String, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False)
+    file_path = Column(String(2000), nullable=False)
+    symbol_type = Column(String(50), nullable=False)   # "class" | "function" | "method" | "variable" | "interface"
+    name = Column(String(500), nullable=False)
+    qualified_name = Column(String(1000), default="")
+    line_start = Column(Integer, default=0)
+    line_end = Column(Integer, default=0)
+    signature = Column(Text, default="")
+    docstring = Column(Text, default="")
+    body_preview = Column(Text, default="")
+    language = Column(String(50), default="")
+    embedding_json = Column(Text, nullable=True)
+    created_at = Column(String, default=now_iso)
+
+
+class DriftAlert(Base):
+    """Drift alert: a mismatch between a blueprint reference and indexed code."""
+    __tablename__ = "drift_alerts"
+    __table_args__ = (
+        Index("ix_drift_alerts_project_id", "project_id"),
+        Index("ix_drift_alerts_status", "status"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    blueprint_id = Column(String, ForeignKey("blueprints.id", ondelete="CASCADE"), nullable=False)
+    repo_id = Column(String, nullable=True)
+    alert_type = Column(String(100), nullable=False)   # "missing_symbol" | "signature_mismatch" | "undocumented_symbol"
+    severity = Column(String(20), default="warning")   # "info" | "warning" | "critical"
+    title = Column(String(500), nullable=False)
+    description = Column(Text, default="")
+    blueprint_reference = Column(String(500), default="")
+    code_reality = Column(String(500), default="")
+    status = Column(String(50), default="open")        # "open" | "acknowledged" | "resolved"
+    resolution_note = Column(Text, default="")
+    detected_at = Column(String, default=now_iso)
+    resolved_at = Column(String, nullable=True)
+    project = relationship("Project", foreign_keys=[project_id])
+    blueprint = relationship("Blueprint", foreign_keys=[blueprint_id])

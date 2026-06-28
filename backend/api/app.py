@@ -105,3 +105,10 @@ app.include_router(referrals_router)
 app.include_router(token_usage_router)
 app.include_router(versions_router)
 app.include_router(plugins_router)
+
+from backend.api.code_index import router as code_index_router
+from backend.api.drift import router as drift_router
+from backend.api.mcp_server import router as mcp_router
+app.include_router(code_index_router)
+app.include_router(drift_router)
+app.include_router(mcp_router)

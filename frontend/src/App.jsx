@@ -17,6 +17,8 @@ import SettingsPage from './pages/SettingsPage';
 import TokenUsagePage from './pages/TokenUsagePage';
 import TemplatesPage from './pages/TemplatesPage';
 import PluginsPage from './pages/PluginsPage';
+import CodeIndexPage from './pages/CodeIndexPage';
+import DriftPage from './pages/DriftPage';
 import { useTheme } from './hooks/useTheme';
 import { useProjects } from './api/hooks';
 import FirstLaunchWizard from './components/FirstLaunchWizard';
@@ -78,6 +80,10 @@ function AppRoutes() {
           <Route path="/er-diagram" element={<ERDiagramPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/plugins" element={<PluginsPage />} />
+          <Route path="/code-index" element={<CodeIndexPage />} />
+          <Route path="/project/:projectId/code-index" element={<CodeIndexPage />} />
+          <Route path="/drift" element={<DriftPage />} />
+          <Route path="/project/:projectId/drift" element={<DriftPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu, Zap } from 'lucide-react';
+import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu, Zap, Code2, AlertTriangle } from 'lucide-react';
 import { useProjects } from '../api/hooks';
 import { useState, useEffect, useRef } from 'react';
 import { useMobile } from '../hooks/useMobile';
@@ -20,6 +20,8 @@ const SECTION_DEFS = [
   { key: 'graph',        icon: Network,       label: 'Graph'        },
   { key: 'models',       icon: Cpu,           label: 'Models'       },
   { key: 'tokens',       icon: Zap,           label: 'Tokens'       },
+  { key: 'code-index',  icon: Code2,         label: 'Code Index'   },
+  { key: 'drift',       icon: AlertTriangle, label: 'Drift Inbox'  },
 ];
 
 // Sections that are NOT project-scoped

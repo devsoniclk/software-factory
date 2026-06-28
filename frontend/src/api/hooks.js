@@ -503,3 +503,82 @@ export function useBlueprintMermaid(blueprintId) {
     enabled: false,
   });
 }
+
+/* ─── Code Index ─── */
+export function useRepositories(projectId) {
+  return useQuery({
+    queryKey: ['repositories', projectId],
+    queryFn: () => client.get(`/repositories/project/${projectId}`).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateRepository(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => client.post(`/repositories/project/${projectId}`, body).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['repositories', projectId] }),
+  });
+}
+
+export function useDeleteRepository(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (repoId) => client.delete(`/repositories/${repoId}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['repositories', projectId] }),
+  });
+}
+
+export function useTriggerIndex() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (repoId) => client.post(`/repositories/${repoId}/index`).then((r) => r.data),
+    onSuccess: (_, repoId) => {
+      const poll = setInterval(() => qc.invalidateQueries({ queryKey: ['repo-status', repoId] }), 2000);
+      setTimeout(() => clearInterval(poll), 30000);
+    },
+  });
+}
+
+export function useRepoStatus(repoId) {
+  return useQuery({
+    queryKey: ['repo-status', repoId],
+    queryFn: () => client.get(`/repositories/${repoId}/status`).then((r) => r.data),
+    enabled: !!repoId,
+    refetchInterval: (data) => (data?.status === 'indexing' ? 2000 : false),
+  });
+}
+
+export function useCodeSearch(repoId, query) {
+  return useQuery({
+    queryKey: ['code-search', repoId, query],
+    queryFn: () => client.get(`/repositories/${repoId}/search`, { params: { q: query } }).then((r) => r.data),
+    enabled: !!repoId && !!query && query.length > 1,
+  });
+}
+
+/* ─── Drift Engine ─── */
+export function useDriftAlerts(projectId, status = 'open') {
+  return useQuery({
+    queryKey: ['drift', projectId, status],
+    queryFn: () => client.get(`/drift/project/${projectId}`, { params: { status } }).then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useScanDrift(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => client.post(`/drift/project/${projectId}/scan`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['drift', projectId] }),
+  });
+}
+
+export function useResolveAlert() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ alertId, status, resolution_note }) =>
+      client.patch(`/drift/alerts/${alertId}`, { status, resolution_note }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['drift'] }),
+  });
+}

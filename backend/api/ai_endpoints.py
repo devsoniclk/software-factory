@@ -334,3 +334,48 @@ async def ai_parse_feedback(
         "requires_immediate_action": parsed.get("requires_immediate_action", False),
         "user_segment_guess": parsed.get("user_segment_guess"),
     }
+        "feature_requests": parsed.get("feature_requests", []),
+        "tasks": parsed.get("tasks", []),
+        "requires_immediate_action": parsed.get("requires_immediate_action", False),
+        "user_segment_guess": parsed.get("user_segment_guess"),
+    }
+
+
+@router.post("/projects/{project_id}/blueprints/{blueprint_id}/code-qa")
+async def code_grounded_qa(project_id: str, blueprint_id: str, body: dict, db: AsyncSession = Depends(get_db)):
+    """Answer a question about a blueprint, grounded in the indexed code."""
+    from backend.services.code_index_service import answer_code_question
+    question = body.get("question", "")
+    repo_id = body.get("repo_id", "")
+    if not question:
+        raise HTTPException(status_code=400, detail="question is required")
+
+    bp = await db.get(Blueprint, blueprint_id)
+    if not bp or bp.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Blueprint not found")
+
+    code_context = {"context": "", "symbols": []}
+    if repo_id:
+        code_context = await answer_code_question(question, repo_id, db)
+
+    # Build grounded prompt
+    prompt = f"""You are answering a question about blueprint "{bp.name}".
+
+Blueprint DSL:
+{bp.dsl_content or "(no DSL defined)"}
+
+Relevant code context:
+{code_context['context'] or "(no code indexed or no matching symbols)"}
+
+Question: {question}
+
+Answer concisely, citing specific code symbols or blueprint components where relevant."""
+
+    from backend.services.llm_client import llm_client
+    answer = await llm_client.complete(prompt, agent_type="code_qa")
+    return {
+        "blueprint_id": blueprint_id,
+        "question": question,
+        "answer": answer,
+        "symbols_used": code_context["symbols"],
+    }
