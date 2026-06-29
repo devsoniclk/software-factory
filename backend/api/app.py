@@ -119,3 +119,34 @@ from backend.api.live_assist import router as live_assist_router
 app.include_router(simulator_router)
 app.include_router(qa_flows_router)
 app.include_router(live_assist_router)
+
+from backend.api.config_api import router as config_router
+from backend.api.artifacts_api import router as artifacts_router
+from backend.api.hooks_api import router as hooks_router
+from backend.api.notifications_api import router as notifications_router
+from backend.api.feedback_themes_api import router as feedback_themes_router
+from backend.api.lifecycle_api import router as lifecycle_router
+from backend.api.external_keys_api import router as external_keys_router
+from backend.api.reporting_api import router as reporting_router
+app.include_router(config_router)
+app.include_router(artifacts_router)
+app.include_router(hooks_router)
+app.include_router(notifications_router)
+app.include_router(feedback_themes_router)
+app.include_router(lifecycle_router)
+app.include_router(external_keys_router)
+app.include_router(reporting_router)
+
+from backend.api.comments_api import router as comments_router, flag_router
+from backend.api.tracked_changes_api import router as tracked_changes_router
+from backend.api.search_api import router as search_router
+from backend.api.agent_chat_api import router as agent_chat_router
+from backend.api.wo_extras_api import router as wo_extras_router
+from backend.api.mindmap_api import router as mindmap_router
+app.include_router(comments_router)
+app.include_router(flag_router)
+app.include_router(tracked_changes_router)
+app.include_router(search_router)
+app.include_router(agent_chat_router)
+app.include_router(wo_extras_router)
+app.include_router(mindmap_router)

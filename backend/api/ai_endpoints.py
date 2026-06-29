@@ -334,11 +334,6 @@ async def ai_parse_feedback(
         "requires_immediate_action": parsed.get("requires_immediate_action", False),
         "user_segment_guess": parsed.get("user_segment_guess"),
     }
-        "feature_requests": parsed.get("feature_requests", []),
-        "tasks": parsed.get("tasks", []),
-        "requires_immediate_action": parsed.get("requires_immediate_action", False),
-        "user_segment_guess": parsed.get("user_segment_guess"),
-    }
 
 
 @router.post("/projects/{project_id}/blueprints/{blueprint_id}/code-qa")

@@ -449,3 +449,225 @@ class FrictionEvent(Base):
     promoted_wo_id = Column(String, nullable=True)
     created_at = Column(String, default=now_iso)
     project = relationship("Project", foreign_keys=[project_id])
+
+
+# ── Section 16 Models ─────────────────────────────────────────────────────────
+
+class AgentInstruction(Base):
+    """Editable system instructions per module/project for AI agents."""
+    __tablename__ = "agent_instructions"
+    __table_args__ = (
+        Index("ix_agent_instructions_project_id", "project_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    module = Column(String(100), nullable=False)
+    instructions = Column(Text, default="")
+    active = Column(Boolean, default=True)
+    created_at = Column(String, default=now_iso)
+    updated_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])
+
+
+class CustomDocTemplate(Base):
+    """User-editable document templates (beyond the seeded presets)."""
+    __tablename__ = "custom_doc_templates"
+    __table_args__ = (
+        Index("ix_custom_doc_templates_project_id", "project_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
+    name = Column(String(500), nullable=False)
+    description = Column(Text, default="")
+    template_type = Column(String(100), default="requirement")
+    body = Column(Text, default="")
+    variables_json = Column(Text, default="[]")
+    is_default = Column(Boolean, default=False)
+    created_at = Column(String, default=now_iso)
+
+
+class WOScopeStrategy(Base):
+    """Work order decomposition strategies."""
+    __tablename__ = "wo_scope_strategies"
+    id = Column(String, primary_key=True, default=uid)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, default="")
+    prompt_addendum = Column(Text, default="")
+    is_builtin = Column(Boolean, default=False)
+    created_at = Column(String, default=now_iso)
+
+
+class Artifact(Base):
+    """An uploaded file used as agent context."""
+    __tablename__ = "artifacts"
+    __table_args__ = (
+        Index("ix_artifacts_project_id", "project_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    filename = Column(String(500), nullable=False)
+    content_type = Column(String(200), default="application/octet-stream")
+    size_bytes = Column(Integer, default=0)
+    storage_path = Column(String(2000), default="")
+    description = Column(Text, default="")
+    text_content = Column(Text, default="")
+    uploaded_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])
+
+
+class AgentHook(Base):
+    """An event-triggered automation hook."""
+    __tablename__ = "agent_hooks"
+    __table_args__ = (
+        Index("ix_agent_hooks_project_id", "project_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(200), nullable=False)
+    event_type = Column(String(100), nullable=False)
+    action = Column(String(100), nullable=False)
+    config_json = Column(Text, default="{}")
+    enabled = Column(Boolean, default=True)
+    last_triggered_at = Column(String, nullable=True)
+    last_result = Column(Text, default="")
+    created_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])
+
+
+class Notification(Base):
+    """A notification for the notification center."""
+    __tablename__ = "notifications"
+    __table_args__ = (
+        Index("ix_notifications_project_id", "project_id"),
+        Index("ix_notifications_read", "read"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
+    title = Column(String(500), nullable=False)
+    body = Column(Text, default="")
+    notification_type = Column(String(100), default="info")
+    entity_type = Column(String(50), default="")
+    entity_id = Column(String, default="")
+    read = Column(Boolean, default=False)
+    created_at = Column(String, default=now_iso)
+
+
+class FeedbackTheme(Base):
+    """A theme grouping multiple feedback items."""
+    __tablename__ = "feedback_themes"
+    __table_args__ = (
+        Index("ix_feedback_themes_project_id", "project_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(500), nullable=False)
+    description = Column(Text, default="")
+    feedback_ids_json = Column(Text, default="[]")
+    ai_generated = Column(Boolean, default=False)
+    color = Column(String(20), default="#0071E3")
+    created_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])
+
+
+class ExternalAPIKey(Base):
+    """User-managed external API key for headless automation."""
+    __tablename__ = "external_api_keys"
+    id = Column(String, primary_key=True, default=uid)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, default="")
+    key_hash = Column(String(200), nullable=False)
+    key_prefix = Column(String(20), default="")
+    scopes_json = Column(Text, default='["read"]')
+    last_used_at = Column(String, nullable=True)
+    expires_at = Column(String, nullable=True)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(String, default=now_iso)
+
+
+class CommentThread(Base):
+    """An inline comment thread attached to a document element."""
+    __tablename__ = "comment_threads"
+    __table_args__ = (
+        Index("ix_comment_threads_entity", "entity_type", "entity_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    entity_type = Column(String(50), nullable=False)
+    entity_id = Column(String, nullable=False)
+    field = Column(String(100), default="")
+    anchor_text = Column(Text, default="")
+    status = Column(String(20), default="open")
+    created_by = Column(String(100), default="user")
+    resolved_by = Column(String(100), nullable=True)
+    created_at = Column(String, default=now_iso)
+    resolved_at = Column(String, nullable=True)
+    comments = relationship("Comment", cascade="all,delete-orphan", back_populates="thread")
+
+
+class Comment(Base):
+    """A single comment in a thread."""
+    __tablename__ = "comments"
+    __table_args__ = (
+        Index("ix_comments_thread_id", "thread_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    thread_id = Column(String, ForeignKey("comment_threads.id", ondelete="CASCADE"), nullable=False)
+    body = Column(Text, nullable=False)
+    author = Column(String(100), default="user")
+    created_at = Column(String, default=now_iso)
+    edited_at = Column(String, nullable=True)
+    thread = relationship("CommentThread", back_populates="comments")
+
+
+class DocumentFlag(Base):
+    """A flag raised on a document."""
+    __tablename__ = "document_flags"
+    __table_args__ = (
+        Index("ix_document_flags_entity", "entity_type", "entity_id"),
+        Index("ix_document_flags_status", "status"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    entity_type = Column(String(50), nullable=False)
+    entity_id = Column(String, nullable=False)
+    reason = Column(Text, default="")
+    flag_type = Column(String(50), default="review")
+    status = Column(String(20), default="open")
+    raised_by = Column(String(100), default="user")
+    created_at = Column(String, default=now_iso)
+    resolved_at = Column(String, nullable=True)
+
+
+class TrackedChange(Base):
+    """An agent-proposed edit shown inline for user accept/reject."""
+    __tablename__ = "tracked_changes"
+    __table_args__ = (
+        Index("ix_tracked_changes_entity", "entity_type", "entity_id"),
+        Index("ix_tracked_changes_status", "status"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    entity_type = Column(String(50), nullable=False)
+    entity_id = Column(String, nullable=False)
+    field = Column(String(100), nullable=False)
+    before_text = Column(Text, default="")
+    after_text = Column(Text, default="")
+    change_summary = Column(String(500), default="")
+    agent_type = Column(String(100), default="ai")
+    status = Column(String(20), default="pending")
+    created_at = Column(String, default=now_iso)
+    resolved_at = Column(String, nullable=True)
+
+
+class AgentChatMessage(Base):
+    """A message in the persistent agent chat panel."""
+    __tablename__ = "agent_chat_messages"
+    __table_args__ = (
+        Index("ix_agent_chat_project_id", "project_id"),
+    )
+    id = Column(String, primary_key=True, default=uid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String(20), nullable=False)
+    content = Column(Text, nullable=False)
+    context_module = Column(String(100), default="")
+    context_entity_id = Column(String, default="")
+    metadata_json = Column(Text, default="{}")
+    created_at = Column(String, default=now_iso)
+    project = relationship("Project", foreign_keys=[project_id])
