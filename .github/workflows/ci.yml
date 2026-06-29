@@ -29,6 +29,6 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install deps
-        run: pip install fastapi sqlalchemy aiosqlite uvicorn pydantic
+        run: pip install -r requirements.txt python-multipart
       - name: Check imports
         run: python3 -c "from backend.api.app import app; print('Backend OK')"
