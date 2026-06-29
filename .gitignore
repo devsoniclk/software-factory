@@ -26,6 +26,13 @@ Thumbs.db
 # Claude
 .claude/
 
+# Planning / business docs (not code)
+PLAN.md
+BRAND_AND_REFERRALS.md
+BUSINESS_MODEL.md
+DESIGN_SYSTEM.md
+PREBUILD_CHECKLIST.md
+
 # Logs
 *.log
 npm-debug.log*
