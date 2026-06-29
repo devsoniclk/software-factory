@@ -22,6 +22,16 @@ import DriftPage from './pages/DriftPage';
 import SimulatorPage from './pages/SimulatorPage';
 import QAFlowsPage from './pages/QAFlowsPage';
 import LiveAssistancePage from './pages/LiveAssistancePage';
+import ConfigPage from './pages/ConfigPage';
+import ArtifactsPage from './pages/ArtifactsPage';
+import HooksPage from './pages/HooksPage';
+import NotificationsPage from './pages/NotificationsPage';
+import FeedbackThemesPage from './pages/FeedbackThemesPage';
+import GlobalSearchPage from './pages/GlobalSearchPage';
+import AgentChatPage from './pages/AgentChatPage';
+import MindmapPage from './pages/MindmapPage';
+import ExternalAPIKeysPage from './pages/ExternalAPIKeysPage';
+import ReportingPage from './pages/ReportingPage';
 import { useTheme } from './hooks/useTheme';
 import { useProjects } from './api/hooks';
 import FirstLaunchWizard from './components/FirstLaunchWizard';
@@ -93,6 +103,16 @@ function AppRoutes() {
           <Route path="/project/:projectId/qa-flows" element={<QAFlowsPage />} />
           <Route path="/live-assist" element={<LiveAssistancePage />} />
           <Route path="/project/:projectId/live-assist" element={<LiveAssistancePage />} />
+          <Route path="/project/:projectId/config" element={<ConfigPage />} />
+          <Route path="/project/:projectId/artifacts" element={<ArtifactsPage />} />
+          <Route path="/project/:projectId/hooks" element={<HooksPage />} />
+          <Route path="/project/:projectId/notifications" element={<NotificationsPage />} />
+          <Route path="/project/:projectId/feedback-themes" element={<FeedbackThemesPage />} />
+          <Route path="/search" element={<GlobalSearchPage />} />
+          <Route path="/project/:projectId/agent-chat" element={<AgentChatPage />} />
+          <Route path="/project/:projectId/mindmap" element={<MindmapPage />} />
+          <Route path="/api-keys" element={<ExternalAPIKeysPage />} />
+          <Route path="/project/:projectId/reporting" element={<ReportingPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

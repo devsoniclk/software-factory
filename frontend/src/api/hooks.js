@@ -674,3 +674,135 @@ export function useWidgetSnippet(projectId) {
     enabled: !!projectId,
   });
 }
+
+// ── Section 16: Config ────────────────────────────────────────────────────────
+export const useAgentInstructions = (projectId) =>
+  useQuery({ queryKey: ['agent-instructions', projectId], queryFn: () => client.get(`/config/project/${projectId}/instructions`).then(r => r.data), enabled: !!projectId });
+export const useUpsertInstruction = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (data) => client.post(`/config/project/${projectId}/instructions`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['agent-instructions', projectId]) });
+};
+export const useDocTemplates = (projectId) =>
+  useQuery({ queryKey: ['doc-templates', projectId], queryFn: () => client.get(`/config/project/${projectId}/templates`).then(r => r.data), enabled: !!projectId });
+export const useCreateDocTemplate = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (data) => client.post(`/config/project/${projectId}/templates`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['doc-templates', projectId]) });
+};
+export const useWOStrategies = () =>
+  useQuery({ queryKey: ['wo-strategies'], queryFn: () => client.get('/config/wo-strategies').then(r => r.data) });
+
+// ── Section 16: Artifacts ─────────────────────────────────────────────────────
+export const useArtifacts = (projectId) =>
+  useQuery({ queryKey: ['artifacts', projectId], queryFn: () => client.get(`/artifacts/project/${projectId}`).then(r => r.data), enabled: !!projectId });
+export const useDeleteArtifact = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id) => client.delete(`/artifacts/${id}`).then(r => r.data), onSuccess: () => qc.invalidateQueries(['artifacts', projectId]) });
+};
+
+// ── Section 16: Hooks ─────────────────────────────────────────────────────────
+export const useAgentHooks = (projectId) =>
+  useQuery({ queryKey: ['agent-hooks', projectId], queryFn: () => client.get(`/hooks/project/${projectId}`).then(r => r.data), enabled: !!projectId });
+export const useCreateAgentHook = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (data) => client.post(`/hooks/project/${projectId}`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['agent-hooks', projectId]) });
+};
+export const useDeleteAgentHook = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id) => client.delete(`/hooks/${id}`).then(r => r.data), onSuccess: () => qc.invalidateQueries(['agent-hooks', projectId]) });
+};
+export const useTriggerHook = () =>
+  useMutation({ mutationFn: (id) => client.post(`/hooks/${id}/trigger`).then(r => r.data) });
+
+// ── Section 16: Notifications ─────────────────────────────────────────────────
+export const useNotifications = (projectId) =>
+  useQuery({ queryKey: ['notifications', projectId], queryFn: () => client.get('/notifications', { params: { project_id: projectId } }).then(r => r.data), enabled: !!projectId });
+export const useUnreadCount = (projectId) =>
+  useQuery({ queryKey: ['notif-unread', projectId], queryFn: () => client.get('/notifications/unread-count', { params: { project_id: projectId } }).then(r => r.data), refetchInterval: 30000, enabled: !!projectId });
+export const useMarkNotifRead = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id) => client.patch(`/notifications/${id}/read`).then(r => r.data), onSuccess: () => { qc.invalidateQueries(['notifications', projectId]); qc.invalidateQueries(['notif-unread', projectId]); } });
+};
+export const useMarkAllRead = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: () => client.post('/notifications/mark-all-read', {}, { params: { project_id: projectId } }).then(r => r.data), onSuccess: () => { qc.invalidateQueries(['notifications', projectId]); qc.invalidateQueries(['notif-unread', projectId]); } });
+};
+
+// ── Section 16: Feedback Themes ───────────────────────────────────────────────
+export const useFeedbackThemes = (projectId) =>
+  useQuery({ queryKey: ['feedback-themes', projectId], queryFn: () => client.get(`/feedback-themes/project/${projectId}`).then(r => r.data), enabled: !!projectId });
+export const useGroomThemes = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: () => client.post(`/feedback-themes/project/${projectId}/groom`).then(r => r.data), onSuccess: () => qc.invalidateQueries(['feedback-themes', projectId]) });
+};
+export const useDeleteFeedbackTheme = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id) => client.delete(`/feedback-themes/${id}`).then(r => r.data), onSuccess: () => qc.invalidateQueries(['feedback-themes', projectId]) });
+};
+
+// ── Section 16: Lifecycle ─────────────────────────────────────────────────────
+export const useCopyProject = () =>
+  useMutation({ mutationFn: ({ projectId, name }) => client.post(`/lifecycle/project/${projectId}/copy`, { name }).then(r => r.data) });
+export const useArchiveProject = () =>
+  useMutation({ mutationFn: (projectId) => client.post(`/lifecycle/project/${projectId}/archive`).then(r => r.data) });
+export const useRestoreProject = () =>
+  useMutation({ mutationFn: (projectId) => client.post(`/lifecycle/project/${projectId}/restore`).then(r => r.data) });
+
+// ── Section 16: External API Keys ─────────────────────────────────────────────
+export const useExternalAPIKeys = () =>
+  useQuery({ queryKey: ['external-api-keys'], queryFn: () => client.get('/api-keys').then(r => r.data) });
+export const useCreateExternalAPIKey = () => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (data) => client.post('/api-keys', data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['external-api-keys']) });
+};
+export const useDeleteExternalAPIKey = () => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id) => client.delete(`/api-keys/${id}`).then(r => r.data), onSuccess: () => qc.invalidateQueries(['external-api-keys']) });
+};
+
+// ── Section 16: Reporting ─────────────────────────────────────────────────────
+export const useProjectReport = (projectId) =>
+  useQuery({ queryKey: ['project-report', projectId], queryFn: () => client.get(`/reporting/project/${projectId}`).then(r => r.data), enabled: !!projectId });
+
+// ── Section 16: Search ────────────────────────────────────────────────────────
+export const useGlobalSearch = (q) =>
+  useQuery({ queryKey: ['global-search', q], queryFn: () => client.get('/search', { params: { q } }).then(r => r.data), enabled: !!q && q.length > 1 });
+
+// ── Section 16: Agent Chat ────────────────────────────────────────────────────
+export const useAgentChatHistory = (projectId) =>
+  useQuery({ queryKey: ['agent-chat', projectId], queryFn: () => client.get(`/agent-chat/project/${projectId}`).then(r => r.data), enabled: !!projectId });
+export const useSendAgentChat = (projectId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (data) => client.post(`/agent-chat/project/${projectId}/chat`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['agent-chat', projectId]) });
+};
+
+// ── Section 16: Comments & Flags ──────────────────────────────────────────────
+export const useCommentThreads = (entityType, entityId) =>
+  useQuery({ queryKey: ['comment-threads', entityType, entityId], queryFn: () => client.get('/comments/threads', { params: { entity_type: entityType, entity_id: entityId } }).then(r => r.data), enabled: !!entityType && !!entityId });
+export const useCreateThread = (entityType, entityId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (data) => client.post('/comments/threads', data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['comment-threads', entityType, entityId]) });
+};
+export const useDocumentFlags = (entityType, entityId) =>
+  useQuery({ queryKey: ['flags', entityType, entityId], queryFn: () => client.get('/flags', { params: { entity_type: entityType, entity_id: entityId } }).then(r => r.data), enabled: !!entityType && !!entityId });
+
+// ── Section 16: Tracked Changes ───────────────────────────────────────────────
+export const useTrackedChanges = (entityType, entityId) =>
+  useQuery({ queryKey: ['tracked-changes', entityType, entityId], queryFn: () => client.get('/tracked-changes', { params: { entity_type: entityType, entity_id: entityId } }).then(r => r.data), enabled: !!entityType && !!entityId });
+export const useAcceptChange = (entityType, entityId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id) => client.post(`/tracked-changes/${id}/accept`).then(r => r.data), onSuccess: () => qc.invalidateQueries(['tracked-changes', entityType, entityId]) });
+};
+export const useRejectChange = (entityType, entityId) => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id) => client.post(`/tracked-changes/${id}/reject`).then(r => r.data), onSuccess: () => qc.invalidateQueries(['tracked-changes', entityType, entityId]) });
+};
+
+// ── Section 16: WO Extras ────────────────────────────────────────────────────
+export const useWODedup = (projectId) =>
+  useMutation({ mutationFn: () => client.post(`/wo-extras/project/${projectId}/dedup`).then(r => r.data) });
+export const usePhaseReview = (projectId) =>
+  useMutation({ mutationFn: () => client.post(`/wo-extras/project/${projectId}/phase-review`).then(r => r.data) });
+
+// ── Section 16: Mindmap ───────────────────────────────────────────────────────
+export const useMindmap = (projectId) =>
+  useQuery({ queryKey: ['mindmap', projectId], queryFn: () => client.get(`/mindmap/project/${projectId}`).then(r => r.data), enabled: !!projectId });
