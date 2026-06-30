@@ -25,8 +25,22 @@ def _change_out(c: TrackedChange) -> dict:
             "change_summary": c.change_summary, "agent_type": c.agent_type,
             "status": c.status, "created_at": c.created_at, "resolved_at": c.resolved_at}
 
+@router.get("")
+async def get_changes_query(entity_type: Optional[str] = Query(None), entity_id: Optional[str] = Query(None), status: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)):
+    """GET /tracked-changes?entity_type=X&entity_id=Y — used by frontend."""
+    q = select(TrackedChange)
+    if entity_type:
+        q = q.where(TrackedChange.entity_type == entity_type)
+    if entity_id:
+        q = q.where(TrackedChange.entity_id == entity_id)
+    if status:
+        q = q.where(TrackedChange.status == status)
+    result = await db.execute(q.order_by(TrackedChange.created_at.desc()))
+    return [_change_out(c) for c in result.scalars().all()]
+
 @router.get("/entity/{entity_type}/{entity_id}")
 async def get_changes(entity_type: str, entity_id: str, status: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)):
+    """GET /tracked-changes/entity/{type}/{id} — path-param form."""
     q = select(TrackedChange).where(TrackedChange.entity_type == entity_type, TrackedChange.entity_id == entity_id)
     if status:
         q = q.where(TrackedChange.status == status)

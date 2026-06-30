@@ -35,7 +35,35 @@ import ReportingPage from './pages/ReportingPage';
 import { useTheme } from './hooks/useTheme';
 import { useProjects } from './api/hooks';
 import FirstLaunchWizard from './components/FirstLaunchWizard';
-import { useState } from 'react';
+import { useState, Component } from 'react';
+
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 16, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: 48 }}>💥</div>
+          <h2 style={{ fontSize: 18, fontWeight: 600 }}>Something went wrong</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 400, textAlign: 'center' }}>{this.state.error.message}</p>
+          <button className="btn-primary" onClick={() => { this.setState({ error: null }); window.location.href = '/'; }}>Go Home</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function NotFoundPage() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 12, color: 'var(--text-primary)' }}>
+      <div style={{ fontSize: 56, fontWeight: 800, color: 'var(--text-tertiary)' }}>404</div>
+      <p style={{ fontSize: 15, color: 'var(--text-secondary)' }}>Page not found</p>
+      <a href="/" className="btn-ghost" style={{ fontSize: 13, textDecoration: 'none' }}>← Back to Overview</a>
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,6 +141,7 @@ function AppRoutes() {
           <Route path="/project/:projectId/mindmap" element={<MindmapPage />} />
           <Route path="/api-keys" element={<ExternalAPIKeysPage />} />
           <Route path="/project/:projectId/reporting" element={<ReportingPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
@@ -121,8 +150,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppRoutes />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AppRoutes />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

@@ -11,6 +11,7 @@ from backend.models.database import (
 
 router = APIRouter(prefix="/reporting", tags=["reporting"])
 
+@router.get("/project/{project_id}")   # alias for frontend
 @router.get("/project/{project_id}/summary")
 async def project_summary(project_id: str, db: AsyncSession = Depends(get_db)):
     """Full metrics snapshot for a project."""

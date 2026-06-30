@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useExternalAPIKeys, useCreateExternalAPIKey, useDeleteExternalAPIKey } from '../api/hooks';
 import EmptyState from '../components/EmptyState';
-import { Key } from 'lucide-react';
+import { Key, Copy, Check } from 'lucide-react';
 
 export default function ExternalAPIKeysPage() {
   const { data: keys = [], isLoading } = useExternalAPIKeys();
@@ -10,12 +10,26 @@ export default function ExternalAPIKeysPage() {
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ name: '', description: '' });
   const [newKey, setNewKey] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  // Auto-clear key from state after 2 minutes for security
+  useEffect(() => {
+    if (!newKey) return;
+    const t = setTimeout(() => setNewKey(null), 120_000);
+    return () => clearTimeout(t);
+  }, [newKey]);
 
   const handleCreate = async () => {
     const result = await create.mutateAsync(form);
-    setNewKey(result.raw_key);
+    setNewKey(result.key);   // backend returns { key: rawKey, ... }
     setShowNew(false);
     setForm({ name: '', description: '' });
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(newKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -30,8 +44,15 @@ export default function ExternalAPIKeysPage() {
       {newKey && (
         <div style={{ background: '#34C75918', border: '1px solid #34C75940', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 20 }}>
           <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Key created — copy it now, it won't be shown again:</p>
-          <code style={{ fontSize: 12, wordBreak: 'break-all', color: '#34C759' }}>{newKey}</code>
-          <button className="btn-ghost" style={{ display: 'block', marginTop: 8, fontSize: 12 }} onClick={() => setNewKey(null)}>Dismiss</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#00000018', borderRadius: 6, padding: '8px 12px', marginBottom: 10 }}>
+            <code style={{ fontSize: 12, wordBreak: 'break-all', color: '#34C759', flex: 1 }}>{newKey}</code>
+            <button className="btn-ghost" style={{ padding: '4px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }} onClick={handleCopy}>
+              {copied ? <Check size={13} color="#34C759" /> : <Copy size={13} />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <p style={{ fontSize: 11, color: '#FF9500', marginBottom: 8 }}>⚠ This key auto-clears from the page in 2 minutes.</p>
+          <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setNewKey(null)}>Dismiss</button>
         </div>
       )}
       {showNew && (

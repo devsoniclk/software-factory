@@ -1,10 +1,12 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useArtifacts, useDeleteArtifact } from '../api/hooks';
 import client from '../api/client';
 import { useQueryClient } from '@tanstack/react-query';
 import EmptyState from '../components/EmptyState';
-import { Paperclip, Trash2 } from 'lucide-react';
+import { Paperclip, Trash2, Loader } from 'lucide-react';
+
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export default function ArtifactsPage() {
   const { projectId } = useParams();
@@ -12,15 +14,31 @@ export default function ArtifactsPage() {
   const deleteArtifact = useDeleteArtifact(projectId);
   const fileRef = useRef();
   const qc = useQueryClient();
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const fd = new FormData();
-    fd.append('file', file);
-    await client.post(`/artifacts/project/${projectId}/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-    qc.invalidateQueries(['artifacts', projectId]);
-    fileRef.current.value = '';
+    if (file.size > MAX_SIZE) {
+      setUploadError(`File too large (max 10 MB). Got ${(file.size / 1024 / 1024).toFixed(1)} MB.`);
+      fileRef.current.value = '';
+      return;
+    }
+    setUploadError('');
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      // Backend route is POST /artifacts/project/{id} (no /upload suffix)
+      await client.post(`/artifacts/project/${projectId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      qc.invalidateQueries(['artifacts', projectId]);
+    } catch (err) {
+      setUploadError(err?.response?.data?.detail || 'Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+      fileRef.current.value = '';
+    }
   };
 
   const fmt = (n) => n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${(n / 1024).toFixed(1)} KB`;
@@ -32,9 +50,16 @@ export default function ArtifactsPage() {
           <h1 className="page-title">Artifacts</h1>
           <p className="page-subtitle">Uploaded files used as agent context (notes, mockups, legacy docs)</p>
         </div>
-        <button className="btn-primary" onClick={() => fileRef.current?.click()}>Upload File</button>
+        <button className="btn-primary" onClick={() => fileRef.current?.click()} disabled={uploading} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {uploading ? <><Loader size={13} style={{ animation: 'spin 1s linear infinite' }} /> Uploading…</> : 'Upload File'}
+        </button>
         <input type="file" ref={fileRef} style={{ display: 'none' }} onChange={handleUpload} />
       </div>
+      {uploadError && (
+        <div style={{ background: '#FF3B3018', border: '1px solid #FF3B3040', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#FF3B30' }}>
+          {uploadError}
+        </div>
+      )}
       {isLoading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> :
         artifacts.length === 0 ? <EmptyState icon={Paperclip} title="No artifacts" subtitle="Upload notes, mockups, or legacy docs to inject into AI context" /> :
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

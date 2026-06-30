@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
 from backend.models.engine import get_db
-from backend.models.database import DriftAlert, now_iso
+from backend.models.database import DriftAlert, now_iso, uid
 from backend.services.drift_service import detect_drift, run_project_drift
 
 router = APIRouter(prefix="/drift", tags=["drift"])

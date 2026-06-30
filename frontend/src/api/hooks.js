@@ -741,7 +741,7 @@ export const useDeleteFeedbackTheme = (projectId) => {
 
 // ── Section 16: Lifecycle ─────────────────────────────────────────────────────
 export const useCopyProject = () =>
-  useMutation({ mutationFn: ({ projectId, name }) => client.post(`/lifecycle/project/${projectId}/copy`, { name }).then(r => r.data) });
+  useMutation({ mutationFn: ({ projectId, name }) => client.post(`/lifecycle/project/${projectId}/copy`, { new_name: name }).then(r => r.data) });
 export const useArchiveProject = () =>
   useMutation({ mutationFn: (projectId) => client.post(`/lifecycle/project/${projectId}/archive`).then(r => r.data) });
 export const useRestoreProject = () =>
@@ -761,7 +761,7 @@ export const useDeleteExternalAPIKey = () => {
 
 // ── Section 16: Reporting ─────────────────────────────────────────────────────
 export const useProjectReport = (projectId) =>
-  useQuery({ queryKey: ['project-report', projectId], queryFn: () => client.get(`/reporting/project/${projectId}`).then(r => r.data), enabled: !!projectId });
+  useQuery({ queryKey: ['project-report', projectId], queryFn: () => client.get(`/reporting/project/${projectId}/summary`).then(r => r.data), enabled: !!projectId });
 
 // ── Section 16: Search ────────────────────────────────────────────────────────
 export const useGlobalSearch = (q) =>
@@ -772,7 +772,7 @@ export const useAgentChatHistory = (projectId) =>
   useQuery({ queryKey: ['agent-chat', projectId], queryFn: () => client.get(`/agent-chat/project/${projectId}`).then(r => r.data), enabled: !!projectId });
 export const useSendAgentChat = (projectId) => {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (data) => client.post(`/agent-chat/project/${projectId}/chat`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['agent-chat', projectId]) });
+  return useMutation({ mutationFn: (data) => client.post(`/agent-chat/project/${projectId}/message`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['agent-chat', projectId]) });
 };
 
 // ── Section 16: Comments & Flags ──────────────────────────────────────────────

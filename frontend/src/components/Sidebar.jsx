@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu, Zap, Code2, AlertTriangle, Monitor, Radio } from 'lucide-react';
+import { LayoutDashboard, Settings, ChevronDown, X, FileText, GitBranch, ClipboardList, FlaskConical, MessageSquare, Shield, Network, Cpu, Zap, Code2, AlertTriangle, Monitor, Radio, Settings2, Paperclip, Bell, Tags, Search, MessageCircle, BarChart2, Key } from 'lucide-react';
 import { useProjects } from '../api/hooks';
 import { useState, useEffect, useRef } from 'react';
 import { useMobile } from '../hooks/useMobile';
@@ -24,11 +24,21 @@ const SECTION_DEFS = [
   { key: 'drift',       icon: AlertTriangle, label: 'Drift Inbox'  },
   { key: 'simulator',   icon: Monitor,       label: 'Simulator'    },
   { key: 'qa-flows',    icon: FlaskConical,  label: 'QA Flows'     },
-  { key: 'live-assist', icon: Radio,         label: 'Live Assist'  },
+  { key: 'live-assist',      icon: Radio,         label: 'Live Assist'    },
+  { key: 'config',           icon: Settings2,     label: 'Config'         },
+  { key: 'artifacts',        icon: Paperclip,     label: 'Artifacts'      },
+  { key: 'hooks',            icon: Zap,           label: 'Hooks'          },
+  { key: 'notifications',    icon: Bell,          label: 'Notifications'  },
+  { key: 'feedback-themes',  icon: Tags,          label: 'FB Themes'      },
+  { key: 'agent-chat',       icon: MessageCircle, label: 'Agent Chat'     },
+  { key: 'mindmap',          icon: Network,       label: 'Mindmap'        },
+  { key: 'reporting',        icon: BarChart2,     label: 'Reporting'      },
+  { key: 'search',           icon: Search,        label: 'Search'         },
+  { key: 'api-keys',         icon: Key,           label: 'API Keys'       },
 ];
 
 // Sections that are NOT project-scoped
-const GLOBAL_SECTIONS = new Set(['audit', 'models', 'tokens']);
+const GLOBAL_SECTIONS = new Set(['audit', 'models', 'tokens', 'search', 'api-keys']);
 
 function NavItem({ to, icon: Icon, label, end, disabled }) {
   if (disabled) {

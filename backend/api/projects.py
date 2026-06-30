@@ -30,12 +30,16 @@ async def create_project(body: ProjectCreate, db: AsyncSession = Depends(get_db)
 async def list_projects(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
+    include_archived: bool = Query(False),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(Project).order_by(Project.created_at.desc()).offset(skip).limit(limit)
     )
-    return result.scalars().all()
+    projects = result.scalars().all()
+    if not include_archived:
+        projects = [p for p in projects if not json.loads(p.settings_json or "{}").get("archived")]
+    return projects
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)

@@ -85,13 +85,37 @@ api_limiter = InMemoryRateLimiter(max_calls=200, window_seconds=60)  # 200 CRUD 
 
 
 class APIKeyAuthMiddleware(BaseHTTPMiddleware):
-    """Require X-API-Key header on all non-exempt, non-OPTIONS requests."""
+    """Require X-API-Key header on all non-exempt, non-OPTIONS requests.
+    Accepts both the shared system key (from settings) and user-managed external keys (from DB).
+    """
 
-    EXEMPT_PATHS = {"/health", "/health/api-key", "/docs", "/openapi.json", "/redoc"}
+    EXEMPT_PATHS = {"/health", "/health/api-key", "/docs", "/openapi.json", "/redoc",
+                    "/live-assist/widget.js", "/live-assist/events"}
 
     def __init__(self, app, api_key: str):
         super().__init__(app)
         self.api_key = api_key
+
+    async def _check_external_key(self, key: str) -> bool:
+        """Check whether key matches any enabled ExternalAPIKey row in the DB."""
+        import hashlib
+        from backend.models.engine import AsyncSessionLocal
+        from backend.models.database import ExternalAPIKey
+        from sqlalchemy import select as _select
+        key_hash = hashlib.sha256(key.encode()).hexdigest()
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                _select(ExternalAPIKey).where(
+                    ExternalAPIKey.key_hash == key_hash,
+                    ExternalAPIKey.enabled == True,
+                )
+            )
+            row = result.scalar_one_or_none()
+            if row:
+                row.last_used_at = __import__('backend.models.database', fromlist=['now_iso']).now_iso()
+                await db.commit()
+                return True
+        return False
 
     async def dispatch(self, request: Request, call_next):
         if request.method == "OPTIONS":
@@ -99,7 +123,13 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
         if request.url.path in self.EXEMPT_PATHS:
             return await call_next(request)
         client_key = request.headers.get("X-API-Key", "")
-        # Constant-time comparison to prevent timing attacks
-        if not hmac.compare_digest(client_key.encode(), self.api_key.encode()):
-            return JSONResponse({"detail": "Unauthorized"}, status_code=401)
-        return await call_next(request)
+        # Fast path: system key
+        if hmac.compare_digest(client_key.encode(), self.api_key.encode()):
+            return await call_next(request)
+        # Slow path: check user-managed external keys
+        try:
+            if await self._check_external_key(client_key):
+                return await call_next(request)
+        except Exception:
+            pass
+        return JSONResponse({"detail": "Unauthorized"}, status_code=401)

@@ -8,6 +8,7 @@ from backend.models.database import WorkOrder, Blueprint, Requirement
 
 router = APIRouter(prefix="/wo-extras", tags=["wo_extras"])
 
+@router.post("/project/{project_id}/dedup")
 @router.get("/project/{project_id}/dedup")
 async def dedup_check(project_id: str, threshold: float = Query(0.6), db: AsyncSession = Depends(get_db)):
     """Find potentially duplicate work orders using title similarity."""
@@ -47,6 +48,7 @@ async def dedup_check(project_id: str, threshold: float = Query(0.6), db: AsyncS
     return {"project_id": project_id, "duplicate_pairs": len(duplicates), "pairs": duplicates[:20]}
 
 
+@router.post("/project/{project_id}/phase-review")
 @router.get("/project/{project_id}/phase-review")
 async def phase_review(project_id: str, db: AsyncSession = Depends(get_db)):
     """AI summary of phase readiness — are requirements well-defined, WOs complete, tests passing?"""

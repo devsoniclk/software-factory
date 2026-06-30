@@ -7,14 +7,18 @@ export default function ReportingPage() {
   const { projectId } = useParams();
   const { data: report, isLoading } = useProjectReport(projectId);
 
-  const metrics = report?.metrics || {};
+  // Backend returns: { requirements:{total}, blueprints:{total}, work_orders:{total,by_status},
+  //                    tests:{total,passed}, feedback:{total}, drift_alerts:{open}, notifications:{unread} }
+  const r = report || {};
   const STATS = [
-    { label: 'Requirements', value: metrics.requirements_total || 0, sub: `${metrics.requirements_approved || 0} approved` },
-    { label: 'Blueprints', value: metrics.blueprints_total || 0 },
-    { label: 'Work Orders', value: metrics.work_orders_total || 0, sub: `${metrics.work_orders_done || 0} done` },
-    { label: 'Tests', value: metrics.tests_total || 0, sub: `${metrics.tests_passed || 0} passed` },
-    { label: 'Feedback', value: metrics.feedback_total || 0 },
-    { label: 'Drift Alerts', value: metrics.drift_open || 0, sub: 'open' },
+    { label: 'Requirements', value: r.requirements?.total ?? 0 },
+    { label: 'Blueprints',   value: r.blueprints?.total ?? 0 },
+    { label: 'Work Orders',  value: r.work_orders?.total ?? 0,
+      sub: Object.entries(r.work_orders?.by_status || {}).map(([s,n]) => `${n} ${s}`).join(' · ') || undefined },
+    { label: 'Tests',        value: r.tests?.total ?? 0,
+      sub: r.tests?.total ? `${r.tests.passed} passed (${Math.round((r.tests.pass_rate||0)*100)}%)` : undefined },
+    { label: 'Feedback',     value: r.feedback?.total ?? 0 },
+    { label: 'Drift Alerts', value: r.drift_alerts?.open ?? 0, sub: 'open' },
   ];
 
   return (
