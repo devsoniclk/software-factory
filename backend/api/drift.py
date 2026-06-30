@@ -1,4 +1,5 @@
 """Drift detection API — detect, list, and resolve blueprint/code drift alerts."""
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -43,9 +44,9 @@ async def scan_project_drift(project_id: str, db: AsyncSession = Depends(get_db)
 
 @router.post("/project/{project_id}/blueprints/{blueprint_id}/scan")
 async def scan_blueprint_drift(
-    project_id: str, blueprint_id: str, repo_id: str = Query(...), db: AsyncSession = Depends(get_db)
+    project_id: str, blueprint_id: str, repo_id: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)
 ):
-    return await detect_drift(project_id, blueprint_id, repo_id, db)
+    return await detect_drift(project_id, blueprint_id, repo_id or "", db)
 
 
 class ResolveBody(BaseModel):

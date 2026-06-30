@@ -367,7 +367,7 @@ Question: {question}
 Answer concisely, citing specific code symbols or blueprint components where relevant."""
 
     from backend.services.llm_client import llm_client
-    answer = await llm_client.complete(prompt, agent_type="code_qa")
+    answer = await llm_client.chat_text([{"role": "user", "content": prompt}], agent_type="code_qa")
     return {
         "blueprint_id": blueprint_id,
         "question": question,

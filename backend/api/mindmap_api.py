@@ -27,7 +27,7 @@ async def get_mindmap(
         for r in reqs:
             nodes.append({
                 "id": r.id, "type": "requirement", "label": r.req_id or r.id[:8],
-                "title": r.title, "status": str(r.status), "priority": r.priority,
+                "title": r.title, "status": r.status.value if r.status else None, "priority": r.priority,
                 "color": "#0071E3",
             })
 
@@ -50,7 +50,7 @@ async def get_mindmap(
         for w in wos:
             nodes.append({
                 "id": w.id, "type": "work_order", "label": w.id[:8],
-                "title": w.title, "status": str(w.status), "color": "#f59e0b",
+                "title": w.title, "status": w.status.value if w.status else None, "color": "#f59e0b",
             })
             # Edge: blueprint → work order
             edges.append({"source": w.blueprint_id, "target": w.id, "label": "has_wo"})

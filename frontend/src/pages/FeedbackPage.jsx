@@ -34,7 +34,7 @@ export default function FeedbackPage() {
   const handleSubmit = () => {
     if (!content.trim()) return;
     createFb.mutate(
-      { source, content },
+      { source, raw_text: content },
       { onSuccess: () => { setCreateOpen(false); setSource('user'); setContent(''); } }
     );
   };
@@ -90,7 +90,7 @@ export default function FeedbackPage() {
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: fb.parsed_tasks?.length ? 12 : 0 }}>{fb.content}</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: fb.parsed_tasks?.length ? 12 : 0 }}>{fb.raw_text}</p>
                   {fb.parsed_tasks?.length > 0 && (
                     <div>
                       <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Parsed Tasks</p>

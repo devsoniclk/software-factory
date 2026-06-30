@@ -108,7 +108,7 @@ Write a complete Playwright test file with:
 Return ONLY the TypeScript code, no explanation."""
 
     from backend.services.llm_client import llm_client
-    test_code = await llm_client.complete(prompt, agent_type="qa_generator")
+    test_code = await llm_client.chat_text([{"role": "user", "content": prompt}], agent_type="qa_generator")
 
     # Clean up markdown fences if LLM wrapped in ```
     import re

@@ -14,7 +14,9 @@ export default function GlobalSearchPage() {
     return () => clearTimeout(t);
   }, [input]);
 
-  const { data: results = [], isFetching } = useGlobalSearch(q);
+  const { data, isFetching } = useGlobalSearch(q);
+  const results = data?.results || [];
+  const total = data?.total ?? 0;
 
   return (
     <div className="page-container">
@@ -23,6 +25,7 @@ export default function GlobalSearchPage() {
           <h1 className="page-title">Global Search</h1>
           <p className="page-subtitle">Search across requirements, blueprints, work orders, and feedback</p>
         </div>
+        {total > 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{total} results</span>}
       </div>
       <div style={{ position: 'relative', marginBottom: 24 }}>
         <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />

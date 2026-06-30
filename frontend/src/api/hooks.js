@@ -680,13 +680,13 @@ export const useAgentInstructions = (projectId) =>
   useQuery({ queryKey: ['agent-instructions', projectId], queryFn: () => client.get(`/config/project/${projectId}/instructions`).then(r => r.data), enabled: !!projectId });
 export const useUpsertInstruction = (projectId) => {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (data) => client.post(`/config/project/${projectId}/instructions`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['agent-instructions', projectId]) });
+  return useMutation({ mutationFn: (data) => client.put(`/config/project/${projectId}/instructions/${data.module}`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['agent-instructions', projectId]) });
 };
 export const useDocTemplates = (projectId) =>
-  useQuery({ queryKey: ['doc-templates', projectId], queryFn: () => client.get(`/config/project/${projectId}/templates`).then(r => r.data), enabled: !!projectId });
+  useQuery({ queryKey: ['doc-templates', projectId], queryFn: () => client.get('/config/doc-templates', { params: projectId ? { project_id: projectId } : {} }).then(r => r.data), enabled: true });
 export const useCreateDocTemplate = (projectId) => {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (data) => client.post(`/config/project/${projectId}/templates`, data).then(r => r.data), onSuccess: () => qc.invalidateQueries(['doc-templates', projectId]) });
+  return useMutation({ mutationFn: (data) => client.post('/config/doc-templates', data, { params: projectId ? { project_id: projectId } : {} }).then(r => r.data), onSuccess: () => qc.invalidateQueries(['doc-templates', projectId]) });
 };
 export const useWOStrategies = () =>
   useQuery({ queryKey: ['wo-strategies'], queryFn: () => client.get('/config/wo-strategies').then(r => r.data) });

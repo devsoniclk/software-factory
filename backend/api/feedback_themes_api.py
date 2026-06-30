@@ -77,7 +77,7 @@ Return ONLY valid JSON, no explanation."""
 
     from backend.services.llm_client import llm_client
     import re
-    raw = await llm_client.complete(prompt, agent_type="theme_groomer")
+    raw = await llm_client.chat_text([{"role": "user", "content": prompt}], agent_type="theme_groomer")
     raw = re.sub(r'^```(?:json)?\n?', '', raw.strip(), flags=re.MULTILINE)
     raw = re.sub(r'\n?```$', '', raw.strip(), flags=re.MULTILINE)
 

@@ -83,7 +83,7 @@ Provide a concise phase readiness assessment (3-4 sentences) covering:
 3. What should be done before moving to the next phase"""
 
     from backend.services.llm_client import llm_client
-    assessment = await llm_client.complete(prompt, agent_type="phase_reviewer")
+    assessment = await llm_client.chat_text([{"role": "user", "content": prompt}], agent_type="phase_reviewer")
 
     return {
         "project_id": project_id,

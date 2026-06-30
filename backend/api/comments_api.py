@@ -31,7 +31,7 @@ def _thread_out(t: CommentThread, comments: Optional[List] = None) -> dict:
         "id": t.id, "entity_type": t.entity_type, "entity_id": t.entity_id,
         "field": t.field, "anchor_text": t.anchor_text, "status": t.status,
         "created_by": t.created_by, "created_at": t.created_at, "resolved_at": t.resolved_at,
-        "comment_count": len(t.comments) if hasattr(t, 'comments') and t.comments else 0,
+        "comment_count": len(comments) if comments is not None else 0,
         "comments": [{"id": c.id, "body": c.body, "author": c.author, "created_at": c.created_at} for c in (comments or [])],
     }
 

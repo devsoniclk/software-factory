@@ -79,7 +79,7 @@ User: {body.message}
 Respond helpfully and concisely. If the user asks you to create, update, or analyze project artifacts, explain what you'd suggest and how to do it in the app."""
 
     from backend.services.llm_client import llm_client
-    response_text = await llm_client.complete(prompt, agent_type="agent_chat")
+    response_text = await llm_client.chat_text([{"role": "user", "content": prompt}], agent_type="agent_chat")
 
     # Save assistant response
     assistant_msg = AgentChatMessage(
