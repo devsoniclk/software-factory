@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Sparkles, Layers, Box, ShieldAlert, ChevronDown, Code2, Eye, History, Edit2, Network, BookOpen, AlertOctagon, GitBranch, Copy, Check } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
@@ -145,7 +146,8 @@ function VersionHistoryPanel({ bpId }) {
 const BLANK_FORM = { name: '', description: '', dsl_content: '', decisions: '', components: '', constraints: '' };
 
 export default function BlueprintsPage() {
-  const [projectId, setProjectId] = useState('');
+  const { projectId: paramProjectId } = useParams();
+  const [projectId, setProjectId] = useState(paramProjectId || '');
   const [createOpen, setCreateOpen] = useState(false);
   const [detailBp, setDetailBp] = useState(null);
   const [editMode, setEditMode] = useState(false);

@@ -2,18 +2,6 @@ import { NavLink } from 'react-router-dom';
 import { Search, Menu } from 'lucide-react';
 import { useMobile } from '../hooks/useMobile';
 
-const tabs = [
-  { to: '/requirements', label: 'Requirements' },
-  { to: '/blueprints',   label: 'Blueprints'   },
-  { to: '/work-orders',  label: 'Work Orders'  },
-  { to: '/tests',        label: 'Tests'        },
-  { to: '/feedback',     label: 'Feedback'     },
-  { to: '/audit',        label: 'Audit'        },
-  { to: '/graph',        label: 'Graph'        },
-  { to: '/models',       label: 'Models'       },
-  { to: '/tokens',       label: 'Tokens'       },
-];
-
 export default function TopNav({ onSearchOpen, onMenuClick }) {
   const isMobile = useMobile();
 
@@ -24,12 +12,11 @@ export default function TopNav({ onSearchOpen, onMenuClick }) {
       borderBottom: '1px solid var(--border)',
       display: 'flex',
       alignItems: 'center',
-      gap: 0,
       flexShrink: 0,
       zIndex: 20,
       position: 'relative',
     }}>
-      {/* Hamburger  mobile only */}
+      {/* Hamburger — mobile only */}
       {isMobile && (
         <button
           onClick={onMenuClick}
@@ -46,19 +33,19 @@ export default function TopNav({ onSearchOpen, onMenuClick }) {
         </button>
       )}
 
-      {/* Logo */}
+      {/* Logo — matches sidebar width on desktop */}
       <NavLink
         to="/"
         style={{
           width: isMobile ? 'auto' : 'var(--sidebar-width)',
-          flex: isMobile ? 1 : undefined,
+          flexGrow: isMobile ? 1 : 0,
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
           padding: isMobile ? '0 14px' : '0 18px',
           textDecoration: 'none',
-          borderRight: isMobile ? 'none' : '1px solid var(--border)',
+          borderRight: '1px solid var(--border)',
           height: '100%',
         }}
       >
@@ -71,53 +58,20 @@ export default function TopNav({ onSearchOpen, onMenuClick }) {
         }}>
           <span style={{ color: '#fff', fontSize: 10, fontWeight: 800, letterSpacing: '-0.5px' }}>SF</span>
         </div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-          {isMobile ? 'SF' : 'Software Factory'}
-        </span>
+        {!isMobile && (
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
+            Software Factory
+          </span>
+        )}
       </NavLink>
 
-      {/* Tabs  desktop only */}
-      {!isMobile && (
-        <nav style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          padding: '0 12px',
-          height: '100%',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-        }}>
-          {tabs.map((t) => (
-            <NavLink
-              key={t.to}
-              to={t.to}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                height: 30,
-                padding: '0 10px',
-                borderRadius: 6,
-                fontSize: 13,
-                fontWeight: isActive ? 500 : 400,
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                background: isActive ? 'var(--accent)' : 'transparent',
-                color: isActive ? '#fff' : 'var(--text-secondary)',
-                transition: 'background 0.12s, color 0.12s',
-              })}
-            >
-              {t.label}
-            </NavLink>
-          ))}
-        </nav>
-      )}
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
 
-      {/* Right side */}
+      {/* Right controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', flexShrink: 0 }}>
-        {/* Search  desktop only */}
-        {!isMobile && (
+        {/* Search — desktop: pill with shortcut hint */}
+        {!isMobile ? (
           <button
             onClick={onSearchOpen}
             style={{
@@ -152,36 +106,20 @@ export default function TopNav({ onSearchOpen, onMenuClick }) {
               ))}
             </div>
           </button>
-        )}
-
-        {/* Search icon  mobile only */}
-        {isMobile && (
+        ) : (
           <button
             onClick={onSearchOpen}
             style={{
-              width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--text-secondary)', borderRadius: 8,
             }}
             aria-label="Search"
           >
-            <Search size={16} strokeWidth={1.5} />
+            <Search size={18} strokeWidth={1.5} />
           </button>
         )}
 
-        {/* Avatar */}
-        <div style={{
-          width: 28, height: 28,
-          borderRadius: '50%',
-          background: 'var(--accent)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 700, color: '#fff',
-          letterSpacing: '0.02em',
-          flexShrink: 0,
-          cursor: 'pointer',
-        }}>
-          MR
-        </div>
       </div>
     </header>
   );

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ArrowUpRight, CheckCircle2, GitBranch, Sparkles, GitCommit, Trash2, X } from 'lucide-react';
+import { Plus, ArrowUpRight, CheckCircle2, GitBranch, Sparkles, GitCommit, Trash2, X, MoreHorizontal } from 'lucide-react';
 import Modal from '../components/Modal';
 import ProductInterviewModal from '../components/ProductInterviewModal';
 import { useProjects, useCreateProject, useDeleteProject, useRequirements, useBlueprints, useWorkOrders, useFeedback, useGitExport } from '../api/hooks';
@@ -79,6 +79,120 @@ function StatCard({ label, value, sub, to, delay }) {
       <div style={{ fontSize: 38, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-1.5px', lineHeight: 1 }}>{value ?? 0}</div>
       {sub && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>{sub}</div>}
     </motion.div>
+  );
+}
+
+function ProjectRow({ project: p, onInterview, onGitExport, onDelete }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const pid = p.id || p.project_id;
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    if (menuOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <Link
+        to={`/project/${pid}/requirements`}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 16px',
+          background: 'var(--color-bg)', border: '1px solid var(--border)',
+          borderRadius: 12, textDecoration: 'none',
+          transition: 'box-shadow 0.15s, border-color 0.15s',
+          gap: 12,
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--border-emphasized)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>{(p.name || 'P')[0].toUpperCase()}</span>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+            {p.description && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{p.description}</div>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {p.created_at && (
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'none' }} className="proj-date">
+              {new Date(p.created_at).toLocaleDateString()}
+            </span>
+          )}
+          <StatusPill status="active" />
+          <button
+            onClick={(e) => { e.preventDefault(); onInterview(); }}
+            className="btn-ai"
+            style={{ fontSize: 11, padding: '3px 9px', gap: 4 }}
+          >
+            <Sparkles size={10} strokeWidth={1.5} /> Overview
+          </button>
+          <button
+            onClick={(e) => { e.preventDefault(); setMenuOpen((o) => !o); }}
+            style={{
+              width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'none', border: '1px solid var(--border)', borderRadius: 7,
+              cursor: 'pointer', color: 'var(--text-secondary)',
+              transition: 'border-color 0.1s, background 0.1s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-bg-hover)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+            aria-label="More actions"
+          >
+            <MoreHorizontal size={13} strokeWidth={1.5} />
+          </button>
+        </div>
+      </Link>
+
+      {/* Overflow menu */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            ref={menuRef}
+            initial={{ opacity: 0, scale: 0.96, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -4 }}
+            transition={{ duration: 0.1 }}
+            style={{
+              position: 'absolute', right: 0, top: 'calc(100% + 4px)',
+              background: 'var(--color-bg)', border: '1px solid var(--border)',
+              borderRadius: 10, boxShadow: 'var(--shadow-md)',
+              zIndex: 50, minWidth: 160, overflow: 'hidden',
+            }}
+          >
+            {[
+              { icon: GitCommit, label: 'Git Export', action: onGitExport, color: 'var(--text-primary)' },
+              { icon: Trash2, label: 'Delete Project', action: onDelete, color: 'var(--status-error)' },
+            ].map(({ icon: Icon, label, action, color }) => (
+              <button
+                key={label}
+                onClick={(e) => { e.preventDefault(); setMenuOpen(false); action(); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  width: '100%', padding: '10px 14px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 13, color, textAlign: 'left',
+                  transition: 'background 0.1s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-bg-secondary)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+              >
+                <Icon size={13} strokeWidth={1.5} />
+                {label}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -165,73 +279,33 @@ export default function Dashboard() {
         <StatCard label="Tests"        value={0}                    sub="Test cases"           to={pid ? `/project/${pid}/tests`       : '/tests'}        delay={6} />
       </div>
 
-      {/* Projects / Codebase card */}
+      {/* Projects list */}
       {projectList.length > 0 && (
         <motion.div {...stagger(7)} style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {projectList.map((p, i) => (
-              <Link
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Projects</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {projectList.map((p) => (
+              <ProjectRow
                 key={p.id || p.project_id}
-                to={`/project/${p.id || p.project_id}/requirements`}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '16px 20px',
-                  background: 'var(--color-bg)', border: '1px solid var(--border)',
-                  borderRadius: 12, textDecoration: 'none',
-                  transition: 'box-shadow 0.15s, border-color 0.15s',
-                  gap: 12,
+                project={p}
+                onInterview={() => setInterviewProjectId(p.id || p.project_id)}
+                onGitExport={() => {
+                  const pid = p.id || p.project_id;
+                  gitExport.mutate(pid, {
+                    onSuccess: (d) => addToast(`Exported to ${d.path}`, 'success'),
+                    onError: () => addToast('Git export failed — check backend logs', 'error'),
+                  });
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--border-emphasized)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <GitBranch size={14} strokeWidth={1.5} style={{ color: 'var(--text-tertiary)' }} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{p.name}</span>
-                  {p.description && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{p.description}</span>}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {p.created_at && (
-                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-                      {new Date(p.created_at).toLocaleDateString()}
-                    </span>
-                  )}
-                  <button
-                    onClick={(e) => { e.preventDefault(); setInterviewProjectId(p.id || p.project_id); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: 11, fontWeight: 500, color: 'var(--accent)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                  >
-                    <Sparkles size={10} strokeWidth={1.5} /> Overview
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const pid = p.id || p.project_id;
-                      gitExport.mutate(pid, {
-                        onSuccess: (d) => addToast(`Exported to ${d.path}`, 'success'),
-                        onError: () => addToast('Git export failed — check backend logs', 'error'),
-                      });
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                  >
-                    <GitCommit size={10} strokeWidth={1.5} /> Git Export
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (window.confirm(`Delete "${p.name}"?\n\nThis permanently deletes all requirements, blueprints, work orders, tests and feedback. This cannot be undone.`)) {
-                        deleteProject.mutate(p.id || p.project_id, {
-                          onError: () => addToast('Failed to delete project', 'error'),
-                        });
-                      }
-                    }}
-                    title="Delete project"
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: 11, fontWeight: 500, color: '#DC2626', background: 'transparent', border: '1px solid #FECACA', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                  >
-                    <Trash2 size={10} strokeWidth={1.5} />
-                  </button>
-                  <StatusPill status="active" />
-                  <ArrowUpRight size={13} strokeWidth={1.5} style={{ color: 'var(--text-tertiary)' }} />
-                </div>
-              </Link>
+                onDelete={() => {
+                  if (window.confirm(`Delete "${p.name}"?\n\nThis permanently deletes all requirements, blueprints, work orders, tests and feedback. This cannot be undone.`)) {
+                    deleteProject.mutate(p.id || p.project_id, {
+                      onError: () => addToast('Failed to delete project', 'error'),
+                    });
+                  }
+                }}
+              />
             ))}
           </div>
         </motion.div>

@@ -2,7 +2,7 @@
 import json
 from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 _MAX_TITLE = 500
 _MAX_DESC = 8_000
@@ -82,7 +82,7 @@ class RequirementResponse(BaseModel):
     priority: int
     status: str
     acceptance_criteria: list[str] = []
-    ears_warnings: list[str] = []
+    ears_warnings: list[Any] = []
     ai_generated: bool
     created_by: str
     created_at: str

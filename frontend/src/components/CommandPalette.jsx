@@ -106,9 +106,7 @@ export default function CommandPalette({ externalOpen, onExternalClose, projectI
             transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}
             style={{
               width: '100%', maxWidth: 480,
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
+              background: 'var(--color-bg)',
               borderRadius: 'var(--radius-lg)',
               boxShadow: 'var(--shadow-xl)',
               border: '1px solid var(--border)',

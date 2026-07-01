@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MessageSquare, Sparkles, Send, ChevronDown, ArrowUpCircle } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
@@ -16,7 +17,8 @@ const SOURCE_COLORS = {
 };
 
 export default function FeedbackPage() {
-  const [projectId, setProjectId] = useState('');
+  const { projectId: paramProjectId } = useParams();
+  const [projectId, setProjectId] = useState(paramProjectId || '');
   const [createOpen, setCreateOpen] = useState(false);
   const [source, setSource]   = useState('user');
   const [content, setContent] = useState('');

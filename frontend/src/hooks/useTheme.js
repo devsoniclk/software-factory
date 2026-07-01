@@ -37,7 +37,7 @@ export function useTheme() {
     const saved = (() => {
       try { return JSON.parse(localStorage.getItem('sf_settings') || '{}'); } catch { return {}; }
     })();
-    applyTheme(saved.theme || 'system');
+    applyTheme(saved.theme || 'light');
     if (saved.accentColor) applyAccent(saved.accentColor);
 
     const listener = () => {

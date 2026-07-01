@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Sparkles, ListChecks, Code2, ChevronDown } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
@@ -26,7 +27,8 @@ const SelectField = ({ value, onChange, children, disabled }) => (
 );
 
 export default function WorkOrdersPage() {
-  const [projectId, setProjectId]   = useState('');
+  const { projectId: paramProjectId } = useParams();
+  const [projectId, setProjectId]   = useState(paramProjectId || '');
   const [blueprintId, setBlueprintId] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', files_to_modify: '' });
